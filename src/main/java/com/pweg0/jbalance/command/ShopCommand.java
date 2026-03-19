@@ -81,8 +81,12 @@ public class ShopCommand {
 
     private static boolean canCreate(CommandSourceStack src) {
         if (!src.isPlayer()) return true;
-        try { return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.SHOP_CREATE); }
-        catch (Exception e) { return true; }
+        try {
+            ServerPlayer player = src.getPlayerOrException();
+            // OP always bypasses
+            if (player.hasPermissions(2)) return true;
+            return PermissionAPI.getPermission(player, JBalancePermissions.SHOP_CREATE);
+        } catch (Exception e) { return true; }
     }
 
     private static boolean canTeleport(CommandSourceStack src) {

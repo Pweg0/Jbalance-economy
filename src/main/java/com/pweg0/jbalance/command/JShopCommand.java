@@ -4,6 +4,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.ShopRepository;
@@ -23,6 +24,7 @@ import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
+import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.server.permission.PermissionAPI;
@@ -76,6 +78,18 @@ public class JShopCommand {
                 .then(Commands.literal("vender2")
                     .then(Commands.argument("qtd", IntegerArgumentType.integer(1))
                         .executes(ctx -> confirmTyped(ctx, ShopPendingTransaction.Type.SELL))))
+                .then(Commands.literal("admin")
+                    .requires(src -> src.hasPermission(2))
+                    .then(Commands.literal("setloja")
+                        .then(Commands.argument("jogador", StringArgumentType.word())
+                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                ctx.getSource().getServer().getPlayerNames(), builder))
+                            .executes(JShopCommand::adminSetLoja)))
+                    .then(Commands.literal("delloja")
+                        .then(Commands.argument("jogador", StringArgumentType.word())
+                            .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                                ctx.getSource().getServer().getPlayerNames(), builder))
+                            .executes(JShopCommand::adminDelLoja))))
                 .then(Commands.literal("help")
                     .executes(JShopCommand::help))
         );
@@ -446,6 +460,61 @@ public class JShopCommand {
             }));
     }
 
+    // ── /jshop admin setloja <jogador> ──
+
+    private static int adminSetLoja(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        ServerPlayer admin = src.getPlayerOrException();
+        String targetName = StringArgumentType.getString(ctx, "jogador");
+
+        EconomyService.getInstance().findByDisplayName(targetName)
+            .whenComplete((record, ex) -> src.getServer().execute(() -> {
+                if (record == null) {
+                    src.sendFailure(Component.literal(
+                        "\u00a76[JBalance] \u00a7cJogador '" + targetName + "' nao encontrado."
+                    ));
+                    return;
+                }
+                ShopService.getInstance().createShop(record.uuid(),
+                        admin.getX(), admin.getY(), admin.getZ(),
+                        admin.getYRot(), admin.getXRot(),
+                        admin.level().dimension().location().toString())
+                    .whenComplete((v, ex2) -> src.getServer().execute(() -> {
+                        src.sendSuccess(() -> Component.literal(
+                            "\u00a76[JBalance] \u00a77Loja criada para \u00a76" + record.displayName()
+                        ), false);
+                        DiscordWebhook.logAdminShopCreated(admin.getName().getString(), record.displayName());
+                    }));
+            }));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    // ── /jshop admin delloja <jogador> ──
+
+    private static int adminDelLoja(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack src = ctx.getSource();
+        String targetName = StringArgumentType.getString(ctx, "jogador");
+
+        EconomyService.getInstance().findByDisplayName(targetName)
+            .whenComplete((record, ex) -> src.getServer().execute(() -> {
+                if (record == null) {
+                    src.sendFailure(Component.literal(
+                        "\u00a76[JBalance] \u00a7cJogador '" + targetName + "' nao encontrado."
+                    ));
+                    return;
+                }
+                ShopService.getInstance().deleteShop(record.uuid())
+                    .whenComplete((v, ex2) -> src.getServer().execute(() -> {
+                        src.sendSuccess(() -> Component.literal(
+                            "\u00a76[JBalance] \u00a77Loja de \u00a76" + record.displayName() + " \u00a77removida."
+                        ), false);
+                        DiscordWebhook.logAdminShopDeleted(src.getTextName(), record.displayName());
+                    }));
+            }));
+        return Command.SINGLE_SUCCESS;
+    }
+
     // ── /jshop help ──
 
     private static int help(CommandContext<CommandSourceStack> ctx) {
@@ -477,6 +546,12 @@ public class JShopCommand {
         src.sendSuccess(() -> Component.literal(""), false);
         src.sendSuccess(() -> Component.literal("\u00a7c\u00a7lObs: \u00a77O bau deve estar no mesmo chunk que o mostruario."), false);
         src.sendSuccess(() -> Component.literal("\u00a77Taxa de \u00a76" + JBalanceConfig.SHOP_TAX_PERCENT.get() + "% \u00a77em toda venda."), false);
+        if (src.hasPermission(2)) {
+            src.sendSuccess(() -> Component.literal(""), false);
+            src.sendSuccess(() -> Component.literal("\u00a7c\u00a7lAdmin:"), false);
+            src.sendSuccess(() -> Component.literal("\u00a76/jshop admin setloja <jogador> \u00a77- Criar loja para jogador (sem cooldown)"), false);
+            src.sendSuccess(() -> Component.literal("\u00a76/jshop admin delloja <jogador> \u00a77- Deletar loja de jogador"), false);
+        }
         return Command.SINGLE_SUCCESS;
     }
 
