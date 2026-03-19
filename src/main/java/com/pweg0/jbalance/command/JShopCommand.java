@@ -5,6 +5,7 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.context.CommandContext;
+import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.ShopRepository;
 import com.pweg0.jbalance.service.EconomyService;
 import com.pweg0.jbalance.service.ShopService;
@@ -44,25 +45,27 @@ public class JShopCommand {
             Commands.literal("jshop")
                 .executes(JShopCommand::help)
                 // /jshop venda 1 20
-                // /jshop venda 1 20 compra 1 5
+                // /jshop venda 1 20 : compra 1 5
                 .then(Commands.literal("venda")
                     .then(Commands.argument("vqtd", IntegerArgumentType.integer(1))
                         .then(Commands.argument("vpreco", LongArgumentType.longArg(1))
                             .executes(JShopCommand::sellOnly)
-                            .then(Commands.literal("compra")
-                                .then(Commands.argument("cqtd", IntegerArgumentType.integer(1))
-                                    .then(Commands.argument("cpreco", LongArgumentType.longArg(1))
-                                        .executes(JShopCommand::sellAndBuy)))))))
+                            .then(Commands.literal(":")
+                                .then(Commands.literal("compra")
+                                    .then(Commands.argument("cqtd", IntegerArgumentType.integer(1))
+                                        .then(Commands.argument("cpreco", LongArgumentType.longArg(1))
+                                            .executes(JShopCommand::sellAndBuy))))))))
                 // /jshop compra 1 5
-                // /jshop compra 1 5 venda 1 20
+                // /jshop compra 1 5 : venda 1 20
                 .then(Commands.literal("compra")
                     .then(Commands.argument("cqtd", IntegerArgumentType.integer(1))
                         .then(Commands.argument("cpreco", LongArgumentType.longArg(1))
                             .executes(JShopCommand::buyOnly)
-                            .then(Commands.literal("venda")
-                                .then(Commands.argument("vqtd", IntegerArgumentType.integer(1))
-                                    .then(Commands.argument("vpreco", LongArgumentType.longArg(1))
-                                        .executes(JShopCommand::buyAndSell)))))))
+                            .then(Commands.literal(":")
+                                .then(Commands.literal("venda")
+                                    .then(Commands.argument("vqtd", IntegerArgumentType.integer(1))
+                                        .then(Commands.argument("vpreco", LongArgumentType.longArg(1))
+                                            .executes(JShopCommand::buyAndSell))))))))
                 .then(Commands.literal("remover")
                     .executes(JShopCommand::remove))
                 .then(Commands.literal("cancelar")
@@ -415,16 +418,33 @@ public class JShopCommand {
 
     private static int help(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack src = ctx.getSource();
-        src.sendSuccess(() -> Component.literal("\u00a76[JBalance] \u00a77Comandos da loja:"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/jshop venda <qtd> <preco> \u00a77- Expor item para venda"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/jshop compra <qtd> <preco> \u00a77- Criar ordem de compra"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/jshop venda 1 20 compra 1 5 \u00a77- Venda e compra juntos"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/jshop remover \u00a77- Remover item exposto"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/jshop cancelar \u00a77- Cancelar operacao"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/setloja \u00a77- Criar sua loja"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/delloja \u00a77- Deletar sua loja"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/lojas \u00a77- Listar todas as lojas"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/loja <jogador> \u00a77- Visitar loja"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76[JBalance] \u00a77========= \u00a76Loja - Ajuda \u00a77========="), false);
+        src.sendSuccess(() -> Component.literal(""), false);
+        src.sendSuccess(() -> Component.literal("\u00a7e\u00a7lCriando sua loja:"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/setloja \u00a77- Cria sua loja na posicao atual"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/delloja \u00a77- Deleta sua loja"), false);
+        src.sendSuccess(() -> Component.literal(""), false);
+        src.sendSuccess(() -> Component.literal("\u00a7e\u00a7lVisitando lojas:"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/lojas \u00a77- Lista todas as lojas (clique pra teleportar)"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/loja <jogador> \u00a77- Teleporta pra loja do jogador"), false);
+        src.sendSuccess(() -> Component.literal(""), false);
+        src.sendSuccess(() -> Component.literal("\u00a7e\u00a7lExpondo itens:"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/jshop venda <qtd> <preco> \u00a77- Vender item"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/jshop compra <qtd> <preco> \u00a77- Comprar item"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/jshop venda 1 20 : compra 1 5 \u00a77- Venda e compra juntos"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/jshop remover \u00a77- Remove item (bata no mostruario)"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/jshop cancelar \u00a77- Cancela operacao em andamento"), false);
+        src.sendSuccess(() -> Component.literal(""), false);
+        src.sendSuccess(() -> Component.literal("\u00a7e\u00a7lComo funciona:"), false);
+        src.sendSuccess(() -> Component.literal("\u00a77 1. Crie sua loja com \u00a76/setloja"), false);
+        src.sendSuccess(() -> Component.literal("\u00a77 2. Segure o item na mao e use \u00a76/jshop venda 1 20"), false);
+        src.sendSuccess(() -> Component.literal("\u00a77 3. Bata no bloco que sera o mostruario"), false);
+        src.sendSuccess(() -> Component.literal("\u00a77 4. Bata no bau/barrel onde o item ficara guardado"), false);
+        src.sendSuccess(() -> Component.literal("\u00a77 5. O item aparece flutuando! Outros jogadores"), false);
+        src.sendSuccess(() -> Component.literal("\u00a77    clicam no mostruario pra comprar/vender"), false);
+        src.sendSuccess(() -> Component.literal(""), false);
+        src.sendSuccess(() -> Component.literal("\u00a7c\u00a7lObs: \u00a77O bau deve estar no mesmo chunk que o mostruario."), false);
+        src.sendSuccess(() -> Component.literal("\u00a77Taxa de \u00a76" + JBalanceConfig.SHOP_TAX_PERCENT.get() + "% \u00a77em toda venda."), false);
         return Command.SINGLE_SUCCESS;
     }
 
