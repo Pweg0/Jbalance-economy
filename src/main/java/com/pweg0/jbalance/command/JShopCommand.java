@@ -4,6 +4,7 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.pweg0.jbalance.data.db.ShopRepository;
 import com.pweg0.jbalance.service.EconomyService;
@@ -43,6 +44,11 @@ public class JShopCommand {
         dispatcher.register(
             Commands.literal("jshop")
                 .executes(JShopCommand::help)
+                // Unified: /jshop criar venda:<qtd>:<preco> OR venda:<qtd>:<preco>:compra:<qtd>:<preco>
+                .then(Commands.literal("criar")
+                    .then(Commands.argument("config", StringArgumentType.greedyString())
+                        .executes(JShopCommand::createUnified)))
+                // Legacy separate commands still work
                 .then(Commands.literal("venda")
                     .then(Commands.argument("qtd", IntegerArgumentType.integer(1))
                         .then(Commands.argument("preco", LongArgumentType.longArg(1))
@@ -64,6 +70,98 @@ public class JShopCommand {
                 .then(Commands.literal("help")
                     .executes(JShopCommand::help))
         );
+    }
+
+    // ── /jshop criar venda:<qtd>:<preco>  or  venda:<qtd>:<preco>:compra:<qtd>:<preco> ──
+
+    private static int createUnified(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        ServerPlayer player = src.getPlayerOrException();
+        String config = StringArgumentType.getString(ctx, "config").trim().toLowerCase();
+
+        int sellQty = 0, buyQty = 0;
+        long sellPrice = 0, buyPrice = 0;
+
+        // Parse "venda:1:20" and/or "compra:1:5"
+        String[] parts = config.split("\\s+");
+        for (String part : parts) {
+            String[] tokens = part.split(":");
+            if (tokens.length == 3 && tokens[0].equals("venda")) {
+                try {
+                    sellQty = Integer.parseInt(tokens[1]);
+                    sellPrice = Long.parseLong(tokens[2]);
+                } catch (NumberFormatException e) {
+                    src.sendFailure(Component.literal(
+                        "\u00a76[JBalance] \u00a7cFormato invalido! Use: venda:quantidade:preco"
+                    ));
+                    return Command.SINGLE_SUCCESS;
+                }
+            } else if (tokens.length == 3 && tokens[0].equals("compra")) {
+                try {
+                    buyQty = Integer.parseInt(tokens[1]);
+                    buyPrice = Long.parseLong(tokens[2]);
+                } catch (NumberFormatException e) {
+                    src.sendFailure(Component.literal(
+                        "\u00a76[JBalance] \u00a7cFormato invalido! Use: compra:quantidade:preco"
+                    ));
+                    return Command.SINGLE_SUCCESS;
+                }
+            } else {
+                src.sendFailure(Component.literal(
+                    "\u00a76[JBalance] \u00a7cFormato invalido! Use:\n" +
+                    "\u00a76/jshop criar venda:1:20\n" +
+                    "\u00a76/jshop criar compra:1:5\n" +
+                    "\u00a76/jshop criar venda:1:20 compra:1:5"
+                ));
+                return Command.SINGLE_SUCCESS;
+            }
+        }
+
+        if (sellQty <= 0 && buyQty <= 0) {
+            src.sendFailure(Component.literal(
+                "\u00a76[JBalance] \u00a7cDefina pelo menos venda ou compra!"
+            ));
+            return Command.SINGLE_SUCCESS;
+        }
+
+        UUID uuid = player.getUUID();
+        final int fSellQty = sellQty, fBuyQty = buyQty;
+        final long fSellPrice = sellPrice, fBuyPrice = buyPrice;
+
+        ShopService svc = ShopService.getInstance();
+        svc.getShop(uuid).whenComplete((shop, ex) -> src.getServer().execute(() -> {
+            if (shop == null) {
+                src.sendFailure(Component.literal(
+                    "\u00a76[JBalance] \u00a7cVoce nao tem uma loja! Use \u00a76/setloja \u00a7cprimeiro."
+                ));
+                return;
+            }
+            svc.countShopItems(uuid).whenComplete((count, ex2) -> src.getServer().execute(() -> {
+                int limit = getItemLimit(player);
+                if (count >= limit) {
+                    src.sendFailure(Component.literal(
+                        "\u00a76[JBalance] \u00a7cLimite de \u00a76" + limit + " \u00a7citens atingido."
+                    ));
+                    return;
+                }
+                ShopSetupSession.start(uuid, fSellQty, fSellPrice, fBuyQty, fBuyPrice);
+
+                StringBuilder msg = new StringBuilder("\u00a76[JBalance] \u00a7aCriando mostruario: ");
+                if (fSellQty > 0) {
+                    msg.append("\u00a77Venda: \u00a76").append(fSellQty).append("x por ")
+                       .append(CurrencyFormatter.formatBalance(fSellPrice));
+                }
+                if (fBuyQty > 0) {
+                    if (fSellQty > 0) msg.append(" \u00a77| ");
+                    msg.append("\u00a77Compra: \u00a76").append(fBuyQty).append("x por ")
+                       .append(CurrencyFormatter.formatBalance(fBuyPrice));
+                }
+                msg.append("\n\u00a76[JBalance] \u00a7eBata no bloco para expor o item.");
+                src.sendSuccess(() -> Component.literal(msg.toString()), false);
+            }));
+        }));
+        return Command.SINGLE_SUCCESS;
     }
 
     // ── /jshop venda <qtd> <preco> ──
@@ -286,11 +384,12 @@ public class JShopCommand {
                             ));
                         }
 
-                        DiscordWebhook.send("Compra na Loja",
-                            "**Comprador:** " + buyer.getName().getString() +
-                            "\n**Item:** " + qty + "x " + targetItem.getDescription().getString() +
-                            "\n**Preco:** " + priceStr + "\n**Taxa:** " + CurrencyFormatter.formatBalance(tax),
-                            DiscordWebhook.COLOR_PAY);
+                        String sellerName = seller != null ? seller.getName().getString() : tx.shopOwner().toString();
+                        DiscordWebhook.logShopPurchase(
+                            buyer.getName().getString(), sellerName,
+                            targetItem.getDescription().getString(), qty,
+                            priceStr, CurrencyFormatter.formatBalance(tax),
+                            CurrencyFormatter.formatBalance(sellerGets));
 
                         // Check remaining stock
                         int stock = 0;
@@ -402,11 +501,13 @@ public class JShopCommand {
                     ));
                 }
 
-                DiscordWebhook.send("Venda na Loja",
-                    "**Vendedor:** " + seller.getName().getString() +
-                    "\n**Item:** " + qty + "x " + targetItem.getDescription().getString() +
-                    "\n**Recebido:** " + CurrencyFormatter.formatBalance(sellerGets),
-                    DiscordWebhook.COLOR_PAY);
+                String ownerName = owner != null ? owner.getName().getString() : tx.shopOwner().toString();
+                DiscordWebhook.logShopSale(
+                    seller.getName().getString(), ownerName,
+                    targetItem.getDescription().getString(), qty,
+                    CurrencyFormatter.formatBalance(totalPrice),
+                    CurrencyFormatter.formatBalance(tax),
+                    CurrencyFormatter.formatBalance(sellerGets));
             }));
     }
 
@@ -415,6 +516,7 @@ public class JShopCommand {
     private static int help(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack src = ctx.getSource();
         src.sendSuccess(() -> Component.literal("\u00a76[JBalance] \u00a77Comandos da loja:"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/jshop criar venda:1:20 compra:1:5 \u00a77- Expor item (venda e/ou compra)"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/jshop venda <qtd> <preco> \u00a77- Expor item para venda"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/jshop compra <qtd> <preco> \u00a77- Criar ordem de compra"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/jshop remover \u00a77- Remover item exposto"), false);

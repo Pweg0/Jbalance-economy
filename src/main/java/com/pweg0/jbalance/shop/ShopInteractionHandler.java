@@ -158,11 +158,8 @@ public class ShopInteractionHandler {
                             "\u00a76[JBalance] \u00a77" + held.getHoverName().getString() + " - " + desc
                         ));
 
-                        DiscordWebhook.send("Item Exposto",
-                            "**Jogador:** " + player.getName().getString() +
-                            "\n**Item:** " + held.getHoverName().getString() +
-                            "\n**" + desc + "**",
-                            DiscordWebhook.COLOR_EARN);
+                        DiscordWebhook.logShopItemExposed(
+                            player.getName().getString(), held.getHoverName().getString(), desc);
                     }));
 
                 ShopSetupSession.remove(uuid);
@@ -390,25 +387,30 @@ public class ShopInteractionHandler {
                     ));
                     return;
                 }
+                String removedItemName = BuiltInRegistries.ITEM.get(
+                    ResourceLocation.parse(item.itemId())).getDescription().getString();
                 ShopService.getInstance().deleteShopItem(item.id());
                 ShopDisplayManager.getInstance().removeDisplay(level, item.id());
                 player.sendSystemMessage(Component.literal(
                     "\u00a76[JBalance] \u00a77Item removido da loja."
                 ));
+                DiscordWebhook.logShopItemRemoved(player.getName().getString(), removedItemName);
             }));
     }
 
     private static void notifyOwnerOutOfStock(net.minecraft.server.MinecraftServer server,
                                                UUID ownerUuid, ShopRepository.ShopItemData item) {
+        String itemName = BuiltInRegistries.ITEM.get(
+            ResourceLocation.parse(item.itemId()))
+            .getDescription().getString();
         ServerPlayer owner = server.getPlayerList().getPlayer(ownerUuid);
+        String ownerName = owner != null ? owner.getName().getString() : ownerUuid.toString();
         if (owner != null) {
-            String itemName = BuiltInRegistries.ITEM.get(
-                net.minecraft.resources.ResourceLocation.parse(item.itemId()))
-                .getDescription().getString();
             owner.sendSystemMessage(Component.literal(
                 "\u00a76[JBalance] \u00a7c\u00a7lSem estoque! \u00a7e" + itemName +
                 " \u00a77esta sem estoque na sua loja. Reponha o bau!"
             ));
         }
+        DiscordWebhook.logShopOutOfStock(ownerName, itemName);
     }
 }

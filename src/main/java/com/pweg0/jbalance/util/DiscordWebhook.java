@@ -35,6 +35,9 @@ public final class DiscordWebhook {
     public static final int COLOR_EARN     = 0x2ECC71; // verde — earnings
     public static final int COLOR_JOIN     = 0xF39C12; // laranja — first join
     public static final int COLOR_MILESTONE = 0x9B59B6; // roxo — milestones
+    public static final int COLOR_SHOP     = 0x1ABC9C; // teal — shop events
+    public static final int COLOR_SHOP_TX  = 0xE67E22; // laranja escuro — shop transactions
+    public static final int COLOR_STOCK    = 0xE91E63; // rosa — out of stock
 
     /**
      * Send a simple embed to the webhook. Non-blocking.
@@ -123,6 +126,90 @@ public final class DiscordWebhook {
         send("Milestone Atingido",
              "**Jogador:** " + player + "\n**Milestone:** " + hours + "h de jogo\n**Recompensa:** +" + reward,
              COLOR_MILESTONE);
+    }
+
+    // ── Shop webhook methods ──
+
+    /** Log shop creation */
+    public static void logShopCreated(String player, int x, int y, int z, String dimension) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Loja Criada",
+             "**Jogador:** " + player + "\n**Posicao:** " + x + ", " + y + ", " + z + "\n**Dimensao:** " + dimension,
+             COLOR_SHOP);
+    }
+
+    /** Log shop deletion */
+    public static void logShopDeleted(String player) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Loja Removida",
+             "**Jogador:** " + player,
+             COLOR_SHOP);
+    }
+
+    /** Log admin shop creation */
+    public static void logAdminShopCreated(String admin, String targetPlayer) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Admin: Loja Criada",
+             "**Admin:** " + admin + "\n**Para:** " + targetPlayer,
+             COLOR_ADMIN);
+    }
+
+    /** Log admin shop deletion */
+    public static void logAdminShopDeleted(String admin, String targetPlayer) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Admin: Loja Removida",
+             "**Admin:** " + admin + "\n**Jogador:** " + targetPlayer,
+             COLOR_ADMIN);
+    }
+
+    /** Log item exposed in shop */
+    public static void logShopItemExposed(String player, String itemName, String details) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Item Exposto na Loja",
+             "**Jogador:** " + player + "\n**Item:** " + itemName + "\n" + details,
+             COLOR_SHOP);
+    }
+
+    /** Log item removed from shop */
+    public static void logShopItemRemoved(String player, String itemName) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Item Removido da Loja",
+             "**Jogador:** " + player + "\n**Item:** " + itemName,
+             COLOR_SHOP);
+    }
+
+    /** Log shop purchase (buyer bought from shop) */
+    public static void logShopPurchase(String buyer, String seller, String itemName, int qty,
+                                        String totalPrice, String tax, String sellerReceived) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Compra na Loja",
+             "**Comprador:** " + buyer + "\n**Vendedor:** " + seller +
+             "\n**Item:** " + qty + "x " + itemName +
+             "\n**Preco total:** " + totalPrice +
+             "\n**Taxa:** " + tax +
+             "\n**Vendedor recebeu:** " + sellerReceived,
+             COLOR_SHOP_TX);
+    }
+
+    /** Log shop sale (player sold items to shop) */
+    public static void logShopSale(String sellerPlayer, String shopOwner, String itemName, int qty,
+                                    String totalPrice, String tax, String sellerReceived) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Venda na Loja",
+             "**Vendedor:** " + sellerPlayer + "\n**Dono da loja:** " + shopOwner +
+             "\n**Item:** " + qty + "x " + itemName +
+             "\n**Preco total:** " + totalPrice +
+             "\n**Taxa:** " + tax +
+             "\n**Vendedor recebeu:** " + sellerReceived,
+             COLOR_SHOP_TX);
+    }
+
+    /** Log out of stock */
+    public static void logShopOutOfStock(String shopOwner, String itemName) {
+        if (!JBalanceConfig.WEBHOOK_LOG_SHOP.get()) return;
+        send("Sem Estoque",
+             "**Dono:** " + shopOwner + "\n**Item:** " + itemName + "\n**Status:** Display removido automaticamente",
+             COLOR_STOCK);
     }
 
     /** Log first join */

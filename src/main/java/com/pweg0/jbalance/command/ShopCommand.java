@@ -92,11 +92,8 @@ public class ShopCommand {
                 src.sendSuccess(() -> Component.literal(
                     "\u00a76[JBalance] \u00a7aLoja criada com sucesso! \u00a77Outros jogadores podem visitar com \u00a76/loja " + player.getName().getString()
                 ), false);
-                DiscordWebhook.send("Loja Criada",
-                    "**Jogador:** " + player.getName().getString() +
-                    "\n**Posicao:** " + (int)player.getX() + ", " + (int)player.getY() + ", " + (int)player.getZ() +
-                    "\n**Dimensao:** " + dimension,
-                    DiscordWebhook.COLOR_JOIN);
+                DiscordWebhook.logShopCreated(player.getName().getString(),
+                    (int)player.getX(), (int)player.getY(), (int)player.getZ(), dimension);
             }));
         return Command.SINGLE_SUCCESS;
     }
@@ -118,6 +115,7 @@ public class ShopCommand {
                 src.sendSuccess(() -> Component.literal(
                     "\u00a76[JBalance] \u00a77Sua loja foi removida."
                 ), false);
+                DiscordWebhook.logShopDeleted(player.getName().getString());
             }));
         return Command.SINGLE_SUCCESS;
     }

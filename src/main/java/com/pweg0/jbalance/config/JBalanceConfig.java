@@ -30,6 +30,7 @@ public class JBalanceConfig {
     public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_ADMIN;
     public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_EARNINGS;
     public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_BALANCE;
+    public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_SHOP;
 
     // Shop section
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> SHOP_DISPLAY_BLACKLIST;
@@ -83,6 +84,8 @@ public class JBalanceConfig {
                                        .define("log_earnings", true);
         WEBHOOK_LOG_BALANCE = builder.comment("Log first join (new player balance)")
                                       .define("log_balance", true);
+        WEBHOOK_LOG_SHOP = builder.comment("Log shop events (create, delete, buy, sell, expose item, out of stock)")
+                                   .define("log_shop", true);
         builder.pop();
 
         builder.comment("JBalance Shop Settings").push("shop");

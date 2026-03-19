@@ -284,9 +284,7 @@ public class EcoAdminCommand {
                         src.sendSuccess(() -> Component.literal(
                             "\u00a76[JBalance] \u00a77Loja criada para \u00a76" + record.displayName()
                         ), false);
-                        DiscordWebhook.send("Admin: Loja Criada",
-                            "**Admin:** " + src.getTextName() + "\n**Para:** " + record.displayName(),
-                            DiscordWebhook.COLOR_ADMIN);
+                        DiscordWebhook.logAdminShopCreated(src.getTextName(), record.displayName());
                     }));
             }));
         return Command.SINGLE_SUCCESS;
@@ -313,9 +311,7 @@ public class EcoAdminCommand {
                         src.sendSuccess(() -> Component.literal(
                             "\u00a76[JBalance] \u00a77Loja de \u00a76" + record.displayName() + " \u00a77removida."
                         ), false);
-                        DiscordWebhook.send("Admin: Loja Removida",
-                            "**Admin:** " + src.getTextName() + "\n**Jogador:** " + record.displayName(),
-                            DiscordWebhook.COLOR_ADMIN);
+                        DiscordWebhook.logAdminShopDeleted(src.getTextName(), record.displayName());
                     }));
             }));
         return Command.SINGLE_SUCCESS;
