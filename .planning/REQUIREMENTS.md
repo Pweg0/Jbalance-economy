@@ -80,40 +80,40 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CURR-01 | — | Pending |
-| CURR-02 | — | Pending |
-| CURR-03 | — | Pending |
-| CURR-04 | — | Pending |
-| CURR-05 | — | Pending |
-| CURR-06 | — | Pending |
-| CURR-07 | — | Pending |
-| CURR-08 | — | Pending |
-| CURR-09 | — | Pending |
-| CURR-10 | — | Pending |
-| EARN-01 | — | Pending |
-| EARN-02 | — | Pending |
-| EARN-03 | — | Pending |
-| EARN-04 | — | Pending |
-| EARN-05 | — | Pending |
-| LAND-01 | — | Pending |
-| LAND-02 | — | Pending |
-| LAND-03 | — | Pending |
-| LAND-04 | — | Pending |
-| LAND-05 | — | Pending |
-| LAND-06 | — | Pending |
-| LAND-07 | — | Pending |
-| LAND-08 | — | Pending |
-| INFR-01 | — | Pending |
-| INFR-02 | — | Pending |
-| INFR-03 | — | Pending |
-| INFR-04 | — | Pending |
-| INFR-05 | — | Pending |
+| CURR-01 | Phase 2 | Pending |
+| CURR-02 | Phase 2 | Pending |
+| CURR-03 | Phase 2 | Pending |
+| CURR-04 | Phase 2 | Pending |
+| CURR-05 | Phase 2 | Pending |
+| CURR-06 | Phase 2 | Pending |
+| CURR-07 | Phase 2 | Pending |
+| CURR-08 | Phase 1 | Pending |
+| CURR-09 | Phase 1 | Pending |
+| CURR-10 | Phase 1 | Pending |
+| EARN-01 | Phase 3 | Pending |
+| EARN-02 | Phase 3 | Pending |
+| EARN-03 | Phase 3 | Pending |
+| EARN-04 | Phase 3 | Pending |
+| EARN-05 | Phase 3 | Pending |
+| LAND-01 | Phase 4 | Pending |
+| LAND-02 | Phase 4 | Pending |
+| LAND-03 | Phase 4 | Pending |
+| LAND-04 | Phase 4 | Pending |
+| LAND-05 | Phase 4 | Pending |
+| LAND-06 | Phase 4 | Pending |
+| LAND-07 | Phase 4 | Pending |
+| LAND-08 | Phase 4 | Pending |
+| INFR-01 | Phase 1 | Pending |
+| INFR-02 | Phase 1 | Pending |
+| INFR-03 | Phase 1 | Pending |
+| INFR-04 | Phase 1 | Pending |
+| INFR-05 | Phase 1 | Pending |
 
 **Coverage:**
 - v1 requirements: 28 total
-- Mapped to phases: 0
-- Unmapped: 28 ⚠️
+- Mapped to phases: 28
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-19*
-*Last updated: 2026-03-19 after initial definition*
+*Last updated: 2026-03-19 after roadmap creation — all 28 requirements mapped*
