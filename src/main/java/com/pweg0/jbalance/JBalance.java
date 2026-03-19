@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import com.pweg0.jbalance.command.CommandRegistrar;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.DatabaseManager;
+import com.pweg0.jbalance.event.EarningsEventHandler;
 import com.pweg0.jbalance.event.PlayerEventHandler;
 import com.pweg0.jbalance.service.EconomyService;
 import net.neoforged.bus.api.IEventBus;
@@ -38,6 +39,9 @@ public class JBalance {
         NeoForge.EVENT_BUS.addListener(JBalance::onServerAboutToStart);
         NeoForge.EVENT_BUS.addListener(JBalance::onServerStopping);
         NeoForge.EVENT_BUS.addListener(CommandRegistrar::onRegisterCommands);
+        NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onFinalizeSpawn);
+        NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onLivingDeath);
+        NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onServerTick);
     }
 
     private void onConfigReloading(ModConfigEvent.Reloading event) {
