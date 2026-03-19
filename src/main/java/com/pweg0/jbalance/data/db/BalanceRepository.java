@@ -5,6 +5,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -12,6 +14,9 @@ import java.util.UUID;
  * All balance mutations use atomic SQL to prevent race conditions.
  */
 public class BalanceRepository {
+
+    public record TopEntry(String displayName, long balance) {}
+    public record PlayerRecord(UUID uuid, String displayName, long balance) {}
 
     private final DataSource dataSource;
     private final boolean isMysql;
@@ -114,6 +119,86 @@ public class BalanceRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException("transfer failed from " + from + " to " + to, e);
+        }
+    }
+
+    /**
+     * Returns the top N players by balance, ordered descending.
+     */
+    public List<TopEntry> getTopBalances(int limit) {
+        String sql = "SELECT display_name, balance FROM jbalance_players ORDER BY balance DESC LIMIT ?";
+        List<TopEntry> results = new ArrayList<>();
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, limit);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    results.add(new TopEntry(rs.getString("display_name"), rs.getLong("balance")));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getTopBalances failed", e);
+        }
+        return results;
+    }
+
+    /**
+     * Returns the 1-based rank of the player by balance.
+     * Returns -1 if the player is not found.
+     */
+    public int getPlayerRank(UUID uuid) {
+        String sql = "SELECT COUNT(*) FROM jbalance_players WHERE balance > (SELECT balance FROM jbalance_players WHERE uuid = ?)";
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, uuid.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getInt(1) + 1 : -1;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getPlayerRank failed for " + uuid, e);
+        }
+    }
+
+    /**
+     * Sets a player's balance to an exact value.
+     * Returns true if the row was updated (player exists), false otherwise.
+     */
+    public boolean setBalance(UUID uuid, long newBalance) {
+        String sql = "UPDATE jbalance_players SET balance = ? WHERE uuid = ?";
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setLong(1, newBalance);
+            ps.setString(2, uuid.toString());
+            return ps.executeUpdate() == 1;
+        } catch (SQLException e) {
+            throw new RuntimeException("setBalance failed for " + uuid, e);
+        }
+    }
+
+    /**
+     * Case-insensitive lookup by display name.
+     * MySQL relies on utf8mb4_general_ci collation; SQLite uses LOWER().
+     * Returns null if no matching player is found.
+     */
+    public PlayerRecord findByDisplayName(String name) {
+        String sql = isMysql
+            ? "SELECT uuid, display_name, balance FROM jbalance_players WHERE display_name = ? LIMIT 1"
+            : "SELECT uuid, display_name, balance FROM jbalance_players WHERE LOWER(display_name) = LOWER(?) LIMIT 1";
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, name);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new PlayerRecord(
+                        UUID.fromString(rs.getString("uuid")),
+                        rs.getString("display_name"),
+                        rs.getLong("balance")
+                    );
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("findByDisplayName failed for " + name, e);
         }
     }
 }
