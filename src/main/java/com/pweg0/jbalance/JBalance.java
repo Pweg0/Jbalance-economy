@@ -14,6 +14,7 @@ import com.pweg0.jbalance.service.PlaytimeService;
 import com.pweg0.jbalance.service.ShopService;
 import com.pweg0.jbalance.shop.ShopDisplayManager;
 import com.pweg0.jbalance.shop.ShopInteractionHandler;
+import com.pweg0.jbalance.util.DiscordWebhook;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -69,22 +70,56 @@ public class JBalance {
     }
 
     private static void onServerAboutToStart(ServerAboutToStartEvent event) {
-        dbManager = new DatabaseManager();
-        economyService = new EconomyService(dbManager);
-        PlaytimeRepository playtimeRepo = new PlaytimeRepository(dbManager.getDataSource(), dbManager.isMysql());
-        playtimeService = new PlaytimeService(playtimeRepo, java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "JBalance-Playtime-DB");
-            t.setDaemon(true);
-            return t;
-        }));
-        ShopRepository shopRepo = new ShopRepository(dbManager.getDataSource(), dbManager.isMysql());
-        shopService = new ShopService(shopRepo, java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-            Thread t = new Thread(r, "JBalance-Shop-DB");
-            t.setDaemon(true);
-            return t;
-        }));
-        shopDisplayManager = new ShopDisplayManager();
-        LOGGER.info("[JBalance] Database and economy service initialized");
+        boolean dbOk = false;
+        boolean shopOk = false;
+
+        try {
+            dbManager = new DatabaseManager();
+            economyService = new EconomyService(dbManager);
+            PlaytimeRepository playtimeRepo = new PlaytimeRepository(dbManager.getDataSource(), dbManager.isMysql());
+            playtimeService = new PlaytimeService(playtimeRepo, java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "JBalance-Playtime-DB");
+                t.setDaemon(true);
+                return t;
+            }));
+            dbOk = true;
+            LOGGER.info("[JBalance] Database and economy service initialized");
+        } catch (Exception e) {
+            LOGGER.error("[JBalance] FAILED to initialize database!", e);
+            DiscordWebhook.send("JBalance - FALHA",
+                "**Modulo:** Database & Economy\n**Erro:** " + e.getMessage(),
+                0xFF0000);
+        }
+
+        try {
+            ShopRepository shopRepo = new ShopRepository(dbManager.getDataSource(), dbManager.isMysql());
+            shopService = new ShopService(shopRepo, java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "JBalance-Shop-DB");
+                t.setDaemon(true);
+                return t;
+            }));
+            shopDisplayManager = new ShopDisplayManager();
+            shopOk = true;
+            LOGGER.info("[JBalance] Shop system initialized");
+        } catch (Exception e) {
+            LOGGER.error("[JBalance] FAILED to initialize shop system!", e);
+            DiscordWebhook.send("JBalance - FALHA",
+                "**Modulo:** Shop System\n**Erro:** " + e.getMessage(),
+                0xFF0000);
+        }
+
+        // Webhook: startup status
+        String dbType = dbOk ? (dbManager.isMysql() ? "MySQL" : "SQLite") : "FALHA";
+        StringBuilder status = new StringBuilder();
+        status.append("**Database:** ").append(dbOk ? "✅ " + dbType : "❌ Falha").append("\n");
+        status.append("**Economy:** ").append(dbOk ? "✅ Carregado" : "❌ Falha").append("\n");
+        status.append("**Earnings:** ").append(dbOk ? "✅ Carregado" : "❌ Falha").append("\n");
+        status.append("**Shop:** ").append(shopOk ? "✅ Carregado" : "❌ Falha").append("\n");
+        status.append("**Webhook:** ✅ Ativo");
+
+        DiscordWebhook.send("JBalance - Servidor Iniciado",
+            status.toString(),
+            dbOk && shopOk ? 0x2ECC71 : 0xE74C3C);
     }
 
     private static void onServerStopping(ServerStoppingEvent event) {
@@ -92,6 +127,10 @@ public class JBalance {
         if (economyService != null) economyService.shutdown();
         if (dbManager != null) dbManager.shutdown();
         LOGGER.info("[JBalance] Database connections closed");
+
+        DiscordWebhook.send("JBalance - Servidor Desligando",
+            "**Status:** Dados salvos e conexoes fechadas",
+            0xF39C12);
     }
 
     public static DatabaseManager getDatabaseManager() {
