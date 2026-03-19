@@ -35,6 +35,7 @@ public class JBalanceConfig {
     // Shop section
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> SHOP_DISPLAY_BLACKLIST;
     public static final ModConfigSpec.LongValue SHOP_TAX_PERCENT;
+    public static final ModConfigSpec.LongValue SHOP_RELOCATE_COOLDOWN_DAYS;
 
     // Earnings - Mob Kills section
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> MOB_KILL_REWARDS;
@@ -98,6 +99,8 @@ public class JBalanceConfig {
                 e -> e instanceof String s && s.matches("[a-z0-9_.-]+:[a-z0-9_/.-]+"));
         SHOP_TAX_PERCENT = builder.comment("Tax percentage on shop sales (e.g. 3 = 3%)")
                                    .defineInRange("tax_percent", 3L, 0L, 100L);
+        SHOP_RELOCATE_COOLDOWN_DAYS = builder.comment("Days before a player can relocate their shop with /setloja (0 = no cooldown). Admin /ecoadmin setloja bypasses this.")
+                                              .defineInRange("relocate_cooldown_days", 30L, 0L, 365L);
         builder.pop();
 
         builder.comment("JBalance Earnings Settings").push("earnings");

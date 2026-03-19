@@ -5,8 +5,13 @@ import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.pweg0.jbalance.JBalance;
+import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.service.ShopService;
 import com.pweg0.jbalance.util.DiscordWebhook;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -98,11 +103,36 @@ public class ShopCommand {
         ServerPlayer player = src.getPlayerOrException();
         UUID uuid = player.getUUID();
         String dimension = player.level().dimension().location().toString();
+        long cooldownDays = JBalanceConfig.SHOP_RELOCATE_COOLDOWN_DAYS.get();
 
-        ShopService.getInstance().createShop(uuid,
-                player.getX(), player.getY(), player.getZ(),
-                player.getYRot(), player.getXRot(), dimension)
-            .whenComplete((v, ex) -> src.getServer().execute(() -> {
+        // Check cooldown — if player already has a shop, check created_at
+        ShopService.getInstance().getShop(uuid).whenComplete((existingShop, exCheck) -> {
+            if (existingShop != null && cooldownDays > 0) {
+                // Check created_at from DB
+                String createdStr = ShopService.getInstance().getRepo().getShopCreatedAt(uuid);
+                if (createdStr != null) {
+                    try {
+                        LocalDateTime created = LocalDateTime.parse(createdStr,
+                            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                        long daysSince = ChronoUnit.DAYS.between(created, LocalDateTime.now());
+                        if (daysSince < cooldownDays) {
+                            long remaining = cooldownDays - daysSince;
+                            src.getServer().execute(() -> src.sendFailure(Component.literal(
+                                "\u00a76[JBalance] \u00a7cVoce so pode mudar sua loja a cada \u00a76" +
+                                cooldownDays + " dias\u00a7c. Faltam \u00a76" + remaining + " dia(s)\u00a7c."
+                            )));
+                            return;
+                        }
+                    } catch (Exception ignored) {
+                        // If parsing fails, allow the operation
+                    }
+                }
+            }
+
+            ShopService.getInstance().createShop(uuid,
+                    player.getX(), player.getY(), player.getZ(),
+                    player.getYRot(), player.getXRot(), dimension)
+                .whenComplete((v, ex) -> src.getServer().execute(() -> {
                 if (ex != null) {
                     JBalance.LOGGER.error("[JBalance] Failed to create shop for {}", uuid, ex);
                     src.sendFailure(Component.literal("\u00a76[JBalance] \u00a7cErro ao criar loja."));
@@ -114,6 +144,7 @@ public class ShopCommand {
                 DiscordWebhook.logShopCreated(player.getName().getString(),
                     (int)player.getX(), (int)player.getY(), (int)player.getZ(), dimension);
             }));
+        });
         return Command.SINGLE_SUCCESS;
     }
 

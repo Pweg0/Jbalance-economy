@@ -70,7 +70,7 @@ public class ShopRepository {
     }
 
     public ShopData getShop(UUID uuid) {
-        String sql = "SELECT x, y, z, yaw, pitch, dimension FROM jbalance_shops WHERE uuid = ?";
+        String sql = "SELECT x, y, z, yaw, pitch, dimension, created_at FROM jbalance_shops WHERE uuid = ?";
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(sql)) {
             ps.setString(1, uuid.toString());
@@ -83,6 +83,22 @@ public class ShopRepository {
             }
         } catch (SQLException e) {
             throw new RuntimeException("getShop failed for " + uuid, e);
+        }
+    }
+
+    /**
+     * Returns the created_at timestamp string for a shop, or null if no shop exists.
+     */
+    public String getShopCreatedAt(UUID uuid) {
+        String sql = "SELECT created_at FROM jbalance_shops WHERE uuid = ?";
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, uuid.toString());
+            try (ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? rs.getString("created_at") : null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getShopCreatedAt failed for " + uuid, e);
         }
     }
 
