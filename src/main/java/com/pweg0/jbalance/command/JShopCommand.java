@@ -47,7 +47,6 @@ public class JShopCommand {
                 // /jshop venda 1 20
                 // /jshop venda 1 20 : compra 1 5
                 .then(Commands.literal("venda")
-                    .requires(JShopCommand::canSell)
                     .then(Commands.argument("vqtd", IntegerArgumentType.integer(1))
                         .then(Commands.argument("vpreco", LongArgumentType.longArg(1))
                             .executes(JShopCommand::sellOnly)
@@ -59,7 +58,6 @@ public class JShopCommand {
                 // /jshop compra 1 5
                 // /jshop compra 1 5 : venda 1 20
                 .then(Commands.literal("compra")
-                    .requires(JShopCommand::canBuy)
                     .then(Commands.argument("cqtd", IntegerArgumentType.integer(1))
                         .then(Commands.argument("cpreco", LongArgumentType.longArg(1))
                             .executes(JShopCommand::buyOnly)
@@ -129,6 +127,24 @@ public class JShopCommand {
         CommandSourceStack src = ctx.getSource();
         ServerPlayer player = src.getPlayerOrException();
         UUID uuid = player.getUUID();
+
+        // Permission check at runtime (not in .requires — avoids timing issues)
+        if (sellQty > 0) {
+            try {
+                if (!PermissionAPI.getPermission(player, JBalancePermissions.SHOP_SELL)) {
+                    src.sendFailure(Component.literal("\u00a76[JBalance] \u00a7cVoce nao tem permissao para vender."));
+                    return Command.SINGLE_SUCCESS;
+                }
+            } catch (Exception ignored) {}
+        }
+        if (buyQty > 0) {
+            try {
+                if (!PermissionAPI.getPermission(player, JBalancePermissions.SHOP_BUY)) {
+                    src.sendFailure(Component.literal("\u00a76[JBalance] \u00a7cVoce nao tem permissao para comprar."));
+                    return Command.SINGLE_SUCCESS;
+                }
+            } catch (Exception ignored) {}
+        }
 
         ShopService svc = ShopService.getInstance();
         svc.getShop(uuid).whenComplete((shop, ex) -> src.getServer().execute(() -> {

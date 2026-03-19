@@ -43,21 +43,18 @@ public class ShopCommand {
         // /setloja
         dispatcher.register(
             Commands.literal("setloja")
-                .requires(ShopCommand::canCreate)
                 .executes(ShopCommand::setLoja)
         );
 
         // /delloja
         dispatcher.register(
             Commands.literal("delloja")
-                .requires(ShopCommand::canCreate)
                 .executes(ShopCommand::delLoja)
         );
 
         // /loja <player>
         dispatcher.register(
             Commands.literal("loja")
-                .requires(ShopCommand::canTeleport)
                 .then(Commands.argument("jogador", StringArgumentType.word())
                     .suggests((ctx, builder) -> {
                         ShopService svc = ShopService.getInstance();
@@ -76,7 +73,6 @@ public class ShopCommand {
         // /lojas
         dispatcher.register(
             Commands.literal("lojas")
-                .requires(ShopCommand::canTeleport)
                 .executes(ShopCommand::listShops)
         );
     }
@@ -101,6 +97,12 @@ public class ShopCommand {
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
         ServerPlayer player = src.getPlayerOrException();
+        // Permission check at runtime
+        if (!canCreate(src)) {
+            src.sendFailure(Component.literal("\u00a76[JBalance] \u00a7cVoce nao tem permissao para criar uma loja."));
+            return Command.SINGLE_SUCCESS;
+        }
+
         UUID uuid = player.getUUID();
         String dimension = player.level().dimension().location().toString();
         long cooldownDays = JBalanceConfig.SHOP_RELOCATE_COOLDOWN_DAYS.get();
@@ -154,6 +156,12 @@ public class ShopCommand {
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
         ServerPlayer player = src.getPlayerOrException();
+
+        if (!canCreate(src)) {
+            src.sendFailure(Component.literal("\u00a76[JBalance] \u00a7cVoce nao tem permissao."));
+            return Command.SINGLE_SUCCESS;
+        }
+
         UUID uuid = player.getUUID();
 
         ShopService.getInstance().deleteShop(uuid)
