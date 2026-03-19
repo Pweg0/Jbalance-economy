@@ -12,7 +12,8 @@ Players must be able to earn, spend, and transfer virtual currency reliably — 
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ All values configurable via TOML config file — Phase 1
+- ✓ Data persistence with MySQL/MariaDB support (SQLite fallback) — Phase 1
 
 ### Active
 
@@ -74,4 +75,4 @@ Players must be able to earn, spend, and transfer virtual currency reliably — 
 | Java (not Kotlin) | Maximum NeoForge compatibility, standard tooling | — Pending |
 
 ---
-*Last updated: 2026-03-19 after initialization*
+*Last updated: 2026-03-19 after Phase 1 completion — Foundation (scaffold, config, database)*

@@ -45,7 +45,7 @@ Plans:
   3. A player can type `/eco pay <player> <amount>` and the coins move atomically — the sender's balance decreases and the receiver's increases with no possibility of a double-spend
   4. A player can type `/eco top` and see the top 10 richest players ranked by balance
   5. An admin (OP level 4) can give, take, or set any player's balance via `/ecoadmin give|take|set <player> <amount>` and the change is immediately reflected
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 02-01-PLAN.md — Service layer extensions: BalanceRepository new methods, EconomyService wrappers, config values, CommandRegistrar skeleton
@@ -77,5 +77,5 @@ Phases execute in numeric order: 1 → 2 → 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-03-19 |
-| 2. Currency | 0/3 | In progress | - |
+| 2. Currency | 2/3 | In Progress|  |
 | 3. Earnings | 0/2 | Not started | - |
