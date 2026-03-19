@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew build:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"fix: prevent duplicate left-click events + protect shop blocks from other players:*)"
+    ]
+  }
+}

@@ -50,6 +50,8 @@ public class ShopInteractionHandler {
     public static void onLeftClickBlock(PlayerInteractEvent.LeftClickBlock event) {
         if (!(event.getEntity() instanceof ServerPlayer player)) return;
         if (event.getHand() != InteractionHand.MAIN_HAND) return;
+        // NeoForge fires LeftClickBlock multiple times per click — only process the first
+        if (event.getAction() != net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.LeftClickBlock.Action.START) return;
 
         UUID uuid = player.getUUID();
 
@@ -413,19 +415,38 @@ public class ShopInteractionHandler {
         String dimension = level.dimension().location().toString();
         int x = pos.getX(), y = pos.getY(), z = pos.getZ();
 
-        // Check if this block is a display block
-        ShopService.getInstance().getShopItemByDisplayPos(x, y, z, dimension)
-            .whenComplete((displayItem, ex) -> {
-                if (displayItem != null) {
-                    deactivateShopItem(player, displayItem, level, "mostruario quebrado");
-                }
-            });
-
-        // Check if this block is a storage block (may have multiple items using it)
         var repo = ShopService.getInstance().getRepo();
+
+        // Check if this block is a display block
+        ShopRepository.ShopItemData displayItem = repo.getShopItemByDisplayPos(x, y, z, dimension);
+        if (displayItem != null) {
+            // Only the owner (or OP) can break it
+            if (!displayItem.shopUuid().equals(player.getUUID()) && !player.hasPermissions(2)) {
+                event.setCanceled(true);
+                player.sendSystemMessage(Component.literal(
+                    "\u00a76[JBalance] \u00a7cEssa loja nao e sua!"
+                ));
+                return;
+            }
+            deactivateShopItem(player, displayItem, level, "mostruario quebrado");
+            return;
+        }
+
+        // Check if this block is a storage block
         List<ShopRepository.ShopItemData> storageItems = repo.getShopItemsByStoragePos(x, y, z, dimension);
-        for (var item : storageItems) {
-            deactivateShopItem(player, item, level, "bau/barrel quebrado");
+        if (!storageItems.isEmpty()) {
+            // Check ownership — all items in storage belong to same shop owner
+            UUID ownerUuid = storageItems.get(0).shopUuid();
+            if (!ownerUuid.equals(player.getUUID()) && !player.hasPermissions(2)) {
+                event.setCanceled(true);
+                player.sendSystemMessage(Component.literal(
+                    "\u00a76[JBalance] \u00a7cEssa loja nao e sua!"
+                ));
+                return;
+            }
+            for (var item : storageItems) {
+                deactivateShopItem(player, item, level, "bau/barrel quebrado");
+            }
         }
     }
 
