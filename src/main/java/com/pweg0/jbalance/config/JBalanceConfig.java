@@ -27,6 +27,10 @@ public class JBalanceConfig {
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> MOB_KILL_REWARDS;
     public static final ModConfigSpec.LongValue KILL_NOTIFICATION_INTERVAL;
 
+    // Earnings - Milestones section
+    public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> MILESTONES;
+    public static final ModConfigSpec.LongValue AFK_TIMEOUT_MINUTES;
+
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -54,7 +58,9 @@ public class JBalanceConfig {
         DB_PASSWORD = builder.comment("MySQL password").define("password", "changeme");
         builder.pop();
 
-        builder.comment("JBalance Earnings - Mob Kill Settings").push("earnings").push("mob_kills");
+        builder.comment("JBalance Earnings Settings").push("earnings");
+
+        builder.comment("Mob kill reward settings").push("mob_kills");
         MOB_KILL_REWARDS = builder
             .comment("Mob kill rewards. Format: \"minecraft:mob_id=reward_amount\". Only listed mobs give coins.")
             .defineListAllowEmpty("rewards",
@@ -67,7 +73,22 @@ public class JBalanceConfig {
         KILL_NOTIFICATION_INTERVAL = builder
             .comment("Seconds between batched kill reward notifications (0 = immediate per kill)")
             .defineInRange("kill_notification_interval", 60L, 0L, 3600L);
-        builder.pop().pop();
+        builder.pop();
+
+        builder.comment("Playtime milestone settings").push("milestones");
+        MILESTONES = builder
+            .comment("Playtime milestones. Format: \"hours=N,reward=X\". Each milestone granted once per player.")
+            .defineListAllowEmpty("milestones",
+                java.util.List.of(
+                    "hours=1,reward=100", "hours=2,reward=200",
+                    "hours=5,reward=500", "hours=10,reward=1000", "hours=24,reward=2500"),
+                e -> e instanceof String s && s.matches("hours=\\d+,reward=\\d+"));
+        AFK_TIMEOUT_MINUTES = builder
+            .comment("Minutes of inactivity before a player is marked AFK (AFK time does not count toward milestones)")
+            .defineInRange("afk_timeout_minutes", 5L, 1L, 60L);
+        builder.pop();
+
+        builder.pop(); // earnings
 
         SPEC = builder.build();
     }
@@ -87,6 +108,26 @@ public class JBalanceConfig {
             }
         }
         return map;
+    }
+
+    public record MilestoneEntry(long hours, long reward) {}
+
+    /**
+     * Parses the MILESTONES config list into a sorted list of MilestoneEntry.
+     * MUST be called on the game thread (config values are not thread-safe).
+     */
+    public static java.util.List<MilestoneEntry> parsedMilestones() {
+        java.util.List<MilestoneEntry> list = new java.util.ArrayList<>();
+        for (Object entry : MILESTONES.get()) {
+            String s = entry.toString();
+            try {
+                String hoursStr = s.substring(s.indexOf("hours=") + 6, s.indexOf(","));
+                String rewardStr = s.substring(s.indexOf("reward=") + 7);
+                list.add(new MilestoneEntry(Long.parseLong(hoursStr), Long.parseLong(rewardStr)));
+            } catch (Exception ignored) {}
+        }
+        list.sort(java.util.Comparator.comparingLong(MilestoneEntry::hours));
+        return list;
     }
 
     private JBalanceConfig() {} // prevent instantiation

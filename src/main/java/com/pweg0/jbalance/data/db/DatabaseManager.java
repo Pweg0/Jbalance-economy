@@ -68,7 +68,12 @@ public class DatabaseManager {
         String schema = readResource(resourcePath);
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate(schema);
+            for (String sql : schema.split(";")) {
+                String trimmed = sql.trim();
+                if (!trimmed.isEmpty()) {
+                    stmt.executeUpdate(trimmed);
+                }
+            }
             JBalance.LOGGER.info("[JBalance] Schema migration completed successfully");
         } catch (SQLException e) {
             throw new RuntimeException("[JBalance] Schema migration failed", e);
