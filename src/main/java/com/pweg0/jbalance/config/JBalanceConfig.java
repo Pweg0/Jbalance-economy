@@ -23,6 +23,14 @@ public class JBalanceConfig {
     public static final ModConfigSpec.ConfigValue<String> DB_USER;
     public static final ModConfigSpec.ConfigValue<String> DB_PASSWORD;
 
+    // Discord Webhook section
+    public static final ModConfigSpec.BooleanValue WEBHOOK_ENABLED;
+    public static final ModConfigSpec.ConfigValue<String> WEBHOOK_URL;
+    public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_PAY;
+    public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_ADMIN;
+    public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_EARNINGS;
+    public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_BALANCE;
+
     // Earnings - Mob Kills section
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> MOB_KILL_REWARDS;
     public static final ModConfigSpec.LongValue KILL_NOTIFICATION_INTERVAL;
@@ -56,6 +64,21 @@ public class JBalanceConfig {
         DB_NAME = builder.comment("MySQL database name").define("database", "jbalance");
         DB_USER = builder.comment("MySQL username").define("user", "jbalance");
         DB_PASSWORD = builder.comment("MySQL password").define("password", "changeme");
+        builder.pop();
+
+        builder.comment("Discord Webhook for economy audit logs").push("webhook");
+        WEBHOOK_ENABLED = builder.comment("Enable Discord webhook logging")
+                                  .define("enabled", false);
+        WEBHOOK_URL = builder.comment("Discord webhook URL (create in Discord channel settings > Integrations > Webhooks)")
+                              .define("url", "");
+        WEBHOOK_LOG_PAY = builder.comment("Log /eco pay transfers")
+                                  .define("log_pay", true);
+        WEBHOOK_LOG_ADMIN = builder.comment("Log /ecoadmin give/take/set commands")
+                                    .define("log_admin", true);
+        WEBHOOK_LOG_EARNINGS = builder.comment("Log mob kill and milestone earnings")
+                                       .define("log_earnings", true);
+        WEBHOOK_LOG_BALANCE = builder.comment("Log first join (new player balance)")
+                                      .define("log_balance", true);
         builder.pop();
 
         builder.comment("JBalance Earnings Settings").push("earnings");

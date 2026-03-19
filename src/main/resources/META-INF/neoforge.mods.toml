@@ -11,7 +11,7 @@ description="Economy mod for ALL THE MONS server."
 [[dependencies.jbalance]]
     modId="neoforge"
     type="required"
-    versionRange="[21.1.220,)"
+    versionRange="[21.1,)"
     ordering="NONE"
     side="BOTH"
 

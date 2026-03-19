@@ -8,10 +8,13 @@ import com.mojang.brigadier.context.CommandContext;
 import com.pweg0.jbalance.JBalance;
 import com.pweg0.jbalance.service.EconomyService;
 import com.pweg0.jbalance.util.CurrencyFormatter;
+import com.pweg0.jbalance.util.CurrencyFormatter;
+import com.pweg0.jbalance.util.DiscordWebhook;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
 import net.minecraft.network.chat.Component;
+import net.neoforged.neoforge.server.permission.PermissionAPI;
 
 /**
  * Admin commands: /ecoadmin give, take, set.
@@ -31,7 +34,10 @@ public class EcoAdminCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(
             Commands.literal("ecoadmin")
-                .requires(src -> src.hasPermission(4))
+                .requires(EcoAdminCommand::isAdmin)
+                .executes(EcoAdminCommand::help)
+                .then(Commands.literal("help")
+                    .executes(EcoAdminCommand::help))
                 .then(Commands.literal("give")
                     .then(Commands.argument("player", StringArgumentType.word())
                         .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
@@ -51,6 +57,37 @@ public class EcoAdminCommand {
                         .then(Commands.argument("amount", LongArgumentType.longArg(0))
                             .executes(EcoAdminCommand::set))))
         );
+    }
+
+    // -------------------------------------------------------------------------
+    // Permission check — uses NeoForge PermissionAPI (LuckPerms compatible)
+    // Console always passes. Fallback: OP level 4.
+    // -------------------------------------------------------------------------
+
+    private static boolean isAdmin(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try {
+            // Any admin permission grants access to the base /ecoadmin command
+            var player = src.getPlayerOrException();
+            return PermissionAPI.getPermission(player, JBalancePermissions.ADMIN_GIVE)
+                || PermissionAPI.getPermission(player, JBalancePermissions.ADMIN_TAKE)
+                || PermissionAPI.getPermission(player, JBalancePermissions.ADMIN_SET);
+        } catch (Exception e) {
+            return src.hasPermission(4);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // /ecoadmin help
+    // -------------------------------------------------------------------------
+
+    private static int help(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack src = ctx.getSource();
+        src.sendSuccess(() -> Component.literal("\u00a76[JBalance Admin] \u00a77Comandos disponiveis:"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/ecoadmin give <jogador> <valor> \u00a77- Dar moedas"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/ecoadmin take <jogador> <valor> \u00a77- Remover moedas"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/ecoadmin set <jogador> <valor> \u00a77- Definir saldo"), false);
+        return Command.SINGLE_SUCCESS;
     }
 
     // -------------------------------------------------------------------------
@@ -86,6 +123,8 @@ public class EcoAdminCommand {
                             return;
                         }
                         String formatted = CurrencyFormatter.formatBalance(amount);
+                        String adminName = src.getTextName();
+                        DiscordWebhook.logAdminGive(adminName, record.displayName(), formatted, isOnline);
                         src.sendSuccess(() -> Component.literal(
                             "\u00a76[JBalance] \u00a77Dado \u00a76" + formatted + " \u00a77para \u00a76"
                             + record.displayName() + offlineTag
@@ -134,6 +173,8 @@ public class EcoAdminCommand {
                             return;
                         }
                         String formatted = CurrencyFormatter.formatBalance(amount);
+                        String adminName = src.getTextName();
+                        DiscordWebhook.logAdminTake(adminName, record.displayName(), formatted, isOnline);
                         src.sendSuccess(() -> Component.literal(
                             "\u00a76[JBalance] \u00a77Removido \u00a76" + formatted + " \u00a77de \u00a76"
                             + record.displayName() + offlineTag
@@ -182,6 +223,8 @@ public class EcoAdminCommand {
                             return;
                         }
                         String formatted = CurrencyFormatter.formatBalance(amount);
+                        String adminName = src.getTextName();
+                        DiscordWebhook.logAdminSet(adminName, record.displayName(), formatted, isOnline);
                         src.sendSuccess(() -> Component.literal(
                             "\u00a76[JBalance] \u00a77Saldo de \u00a76" + record.displayName()
                             + " \u00a77definido para \u00a76" + formatted + offlineTag

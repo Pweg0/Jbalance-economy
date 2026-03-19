@@ -4,6 +4,7 @@ import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.service.EconomyService;
 import com.pweg0.jbalance.service.PlaytimeService;
 import com.pweg0.jbalance.util.CurrencyFormatter;
+import com.pweg0.jbalance.util.DiscordWebhook;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
@@ -108,11 +109,13 @@ public class EarningsEventHandler {
 
                 // Send notification to online player (game thread — we are inside ServerTickEvent)
                 ServerPlayer onlinePlayer = event.getServer().getPlayerList().getPlayer(uuid);
+                String formatted = CurrencyFormatter.formatBalance(coins);
                 if (onlinePlayer != null) {
                     onlinePlayer.sendSystemMessage(Component.literal(
-                        "§6[JBalance] §7Voce recebeu §6" + CurrencyFormatter.formatBalance(coins)
+                        "§6[JBalance] §7Voce recebeu §6" + formatted
                         + " §7por matar §6" + killCount + " §7mobs"
                     ));
+                    DiscordWebhook.logMobEarnings(onlinePlayer.getName().getString(), formatted, killCount);
                 }
 
                 // Credit coins asynchronously — fire and forget

@@ -2,6 +2,7 @@ package com.pweg0.jbalance;
 
 import com.mojang.logging.LogUtils;
 import com.pweg0.jbalance.command.CommandRegistrar;
+import com.pweg0.jbalance.command.JBalancePermissions;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.DatabaseManager;
 import com.pweg0.jbalance.data.db.PlaytimeRepository;
@@ -36,6 +37,9 @@ public class JBalance {
         // 2. Subscribe to mod-bus events for config reload
         IEventBus modBus = container.getEventBus();
         modBus.addListener(this::onConfigReloading);
+
+        // 3a. Permission nodes — game bus event, not mod bus
+        NeoForge.EVENT_BUS.addListener(JBalancePermissions::onGatherPermissions);
 
         // 3. Subscribe to game-bus events: player join, server start/stop
         NeoForge.EVENT_BUS.addListener(PlayerEventHandler::onPlayerLoggedIn);

@@ -28,6 +28,12 @@ neoForge {
     }
 }
 
+processResources {
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand project.properties
+    }
+}
+
 repositories {
     mavenCentral()
 }

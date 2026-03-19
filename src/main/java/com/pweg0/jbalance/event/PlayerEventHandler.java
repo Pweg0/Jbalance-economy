@@ -4,6 +4,7 @@ import com.pweg0.jbalance.JBalance;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.service.EconomyService;
 import com.pweg0.jbalance.util.CurrencyFormatter;
+import com.pweg0.jbalance.util.DiscordWebhook;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
@@ -39,6 +40,7 @@ public class PlayerEventHandler {
                     // Read config on game thread re-entry for the welcome message
                     long startBal = JBalanceConfig.STARTING_BALANCE.get();
                     String formattedBalance = CurrencyFormatter.formatBalance(startBal);
+                    DiscordWebhook.logFirstJoin(name, formattedBalance);
                     // Re-enter game thread before sending chat message
                     var server = player.getServer();
                     server.execute(() ->

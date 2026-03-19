@@ -4,6 +4,7 @@ import com.pweg0.jbalance.JBalance;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.PlaytimeRepository;
 import com.pweg0.jbalance.util.CurrencyFormatter;
+import com.pweg0.jbalance.util.DiscordWebhook;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -184,11 +185,13 @@ public class PlaytimeService {
                 EconomyService.getInstance().give(uuid, milestone.reward());
 
                 // Send milestone notification (on game thread)
+                String rewardFormatted = CurrencyFormatter.formatBalance(milestone.reward());
                 player.sendSystemMessage(Component.literal(
                     "§6[JBalance] §aVoce completou " + milestone.hours() + "h de jogo! Recompensa: §6"
-                    + CurrencyFormatter.formatBalance(milestone.reward())
+                    + rewardFormatted
                 ));
 
+                DiscordWebhook.logMilestone(player.getName().getString(), milestone.hours(), rewardFormatted);
                 JBalance.LOGGER.info("[JBalance] Milestone granted to {}: {}h -> {} coins",
                     uuid, milestone.hours(), milestone.reward());
             }

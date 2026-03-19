@@ -14,6 +14,8 @@ import net.minecraft.commands.Commands;
 import net.minecraft.commands.arguments.EntityArgument;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import com.pweg0.jbalance.util.DiscordWebhook;
+import net.neoforged.neoforge.server.permission.PermissionAPI;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -23,7 +25,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Player commands: /eco balance, /eco pay, /eco top.
+ * Player commands: /eco balance, /eco pay, /eco top, /eco help.
+ * Also registers /bal as alias for /eco.
  * All DB operations are dispatched asynchronously via EconomyService,
  * then results are sent on the game thread via server.execute().
  */
@@ -41,23 +44,118 @@ public class EcoCommand {
     private static volatile Instant cacheExpiry = Instant.EPOCH;
 
     /**
-     * Registers the /eco command tree with the given dispatcher.
+     * Registers the /eco and /bal command trees with the given dispatcher.
      * Called by CommandRegistrar during RegisterCommandsEvent.
      */
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+        // Build the command tree once, register under both /eco and /bal
+        var balanceCmd = Commands.literal("balance")
+                .requires(EcoCommand::canBalance)
+                .executes(EcoCommand::balance)
+                .then(Commands.argument("player", EntityArgument.player())
+                    .requires(EcoCommand::canBalanceOther)
+                    .executes(EcoCommand::balanceOther));
+
+        var payCmd = Commands.literal("pay")
+                .requires(EcoCommand::canPay)
+                .then(Commands.argument("player", EntityArgument.player())
+                    .then(Commands.argument("amount", LongArgumentType.longArg(1))
+                        .executes(EcoCommand::pay)));
+
+        var topCmd = Commands.literal("top")
+                .requires(EcoCommand::canTop)
+                .executes(EcoCommand::top);
+
+        var helpCmd = Commands.literal("help")
+                .executes(EcoCommand::help);
+
+        // /eco
         dispatcher.register(
             Commands.literal("eco")
-                .then(Commands.literal("balance")
-                    .executes(EcoCommand::balance)
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .executes(EcoCommand::balanceOther)))
-                .then(Commands.literal("pay")
-                    .then(Commands.argument("player", EntityArgument.player())
-                        .then(Commands.argument("amount", LongArgumentType.longArg(1))
-                            .executes(EcoCommand::pay))))
-                .then(Commands.literal("top")
-                    .executes(EcoCommand::top))
+                .executes(EcoCommand::help)
+                .then(balanceCmd)
+                .then(payCmd)
+                .then(topCmd)
+                .then(helpCmd)
         );
+
+        // /bal — full alias with identical subcommands
+        var balBalanceCmd = Commands.literal("balance")
+                .requires(EcoCommand::canBalance)
+                .executes(EcoCommand::balance)
+                .then(Commands.argument("player", EntityArgument.player())
+                    .requires(EcoCommand::canBalanceOther)
+                    .executes(EcoCommand::balanceOther));
+
+        var balPayCmd = Commands.literal("pay")
+                .requires(EcoCommand::canPay)
+                .then(Commands.argument("player", EntityArgument.player())
+                    .then(Commands.argument("amount", LongArgumentType.longArg(1))
+                        .executes(EcoCommand::pay)));
+
+        var balTopCmd = Commands.literal("top")
+                .requires(EcoCommand::canTop)
+                .executes(EcoCommand::top);
+
+        var balHelpCmd = Commands.literal("help")
+                .executes(EcoCommand::help);
+
+        dispatcher.register(
+            Commands.literal("bal")
+                .executes(EcoCommand::help)
+                .then(balBalanceCmd)
+                .then(balPayCmd)
+                .then(balTopCmd)
+                .then(balHelpCmd)
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // Permission checks — use NeoForge PermissionAPI (LuckPerms compatible)
+    // Console always passes.
+    // -------------------------------------------------------------------------
+
+    private static boolean canBalance(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try {
+            return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.ECO_BALANCE);
+        } catch (Exception e) { return true; }
+    }
+
+    private static boolean canBalanceOther(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try {
+            return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.ECO_BALANCE_OTHER);
+        } catch (Exception e) { return true; }
+    }
+
+    private static boolean canPay(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try {
+            return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.ECO_PAY);
+        } catch (Exception e) { return true; }
+    }
+
+    private static boolean canTop(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try {
+            return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.ECO_TOP);
+        } catch (Exception e) { return true; }
+    }
+
+    // -------------------------------------------------------------------------
+    // /eco help — show available commands
+    // -------------------------------------------------------------------------
+
+    private static int help(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack src = ctx.getSource();
+        src.sendSuccess(() -> Component.literal("\u00a76[JBalance] \u00a77Comandos disponiveis:"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/eco balance \u00a77- Ver seu saldo"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/eco balance <jogador> \u00a77- Ver saldo de outro jogador"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/eco pay <jogador> <valor> \u00a77- Enviar moedas"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/eco top \u00a77- Ranking dos mais ricos"), false);
+        src.sendSuccess(() -> Component.literal("\u00a77Use \u00a76/bal \u00a77ou \u00a76/eco \u00a77como prefixo."), false);
+        return Command.SINGLE_SUCCESS;
     }
 
     // -------------------------------------------------------------------------
@@ -169,6 +267,12 @@ public class EcoCommand {
                 // Update cooldown after successful transfer
                 lastTransfer.put(senderId, Instant.now());
                 String formatted = CurrencyFormatter.formatBalance(amount);
+                // Webhook log
+                EconomyService.getInstance().getBalance(senderId)
+                    .whenComplete((newBal, ex3) -> {
+                        String balStr = ex3 == null ? CurrencyFormatter.formatBalance(newBal) : "?";
+                        DiscordWebhook.logPay(senderName, targetName, formatted, balStr);
+                    });
                 // Notify sender
                 src.sendSuccess(() -> Component.literal(
                     "\u00a76[JBalance] \u00a77Voce enviou \u00a76" + formatted + " \u00a77para \u00a76" + targetName
