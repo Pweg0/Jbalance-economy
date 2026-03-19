@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-foundation-01-02-PLAN.md
-last_updated: "2026-03-19T04:16:00.000Z"
+stopped_at: Completed 01-foundation-01-03-PLAN.md
+last_updated: "2026-03-19T04:22:00.000Z"
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 3
-  completed_plans: 2
+  completed_plans: 3
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 
 ## Current Position
 
-Phase: 01 (foundation) — EXECUTING
-Plan: 3 of 3
+Phase: 01 (foundation) — COMPLETE
+Plan: 3 of 3 (all plans complete)
 
 ## Performance Metrics
 
@@ -48,6 +48,7 @@ Plan: 3 of 3
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 12 | 2 tasks | 10 files |
 | Phase 01-foundation P02 | 3 | 2 tasks | 3 files |
+| Phase 01-foundation P03 | 3 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,9 @@ Recent decisions affecting current work:
 - [Phase 01-foundation]: Gradle wrapper created manually (no global Gradle install) — gradle-wrapper.jar downloaded via curl
 - [Phase 01-foundation P02]: getEventBus() (not eventBus()) is the correct ModContainer method in FancyModLoader 4.0.42 — confirmed by decompiling loader-4.0.42.jar
 - [Phase 01-foundation P02]: All numeric ModConfigSpec values use defineInRange to prevent NeoForge config infinite correction loop (Issue #1768)
+- [Phase 01-foundation P03]: ServerAboutToStartEvent used for DB init (not FMLCommonSetupEvent) — config values guaranteed available at this point
+- [Phase 01-foundation P03]: EconomyService.initPlayerIfAbsent reads STARTING_BALANCE on game thread before going async to avoid ConfigValue.get() from DB_EXECUTOR threads
+- [Phase 01-foundation P03]: BalanceRepository uses two dialect-specific SQL strings for initPlayerIfAbsent (INSERT IGNORE INTO vs INSERT OR IGNORE INTO)
 
 ### Pending Todos
 
@@ -75,6 +79,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T04:16:00Z
-Stopped at: Completed 01-foundation-01-02-PLAN.md
+Last session: 2026-03-19T04:22:00Z
+Stopped at: Completed 01-foundation-01-03-PLAN.md
 Resume file: None
