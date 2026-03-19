@@ -14,13 +14,13 @@ Players must be able to earn, spend, and transfer virtual currency reliably — 
 
 - ✓ All values configurable via TOML config file — Phase 1
 - ✓ Data persistence with MySQL/MariaDB support (SQLite fallback) — Phase 1
+- ✓ Virtual currency system with per-player balance — Phase 2
+- ✓ /eco pay command to send coins between players — Phase 2
+- ✓ /eco balance to check own balance — Phase 2
+- ✓ /eco top ranking of top 10 richest players — Phase 2
+- ✓ Admin commands: /ecoadmin give, take, set — Phase 2
 
 ### Active
-
-- [ ] Virtual currency system with per-player balance
-- [ ] /eco pay command to send coins between players
-- [ ] /eco balance to check own balance
-- [ ] /eco top (ecotop) ranking of top 10 richest players
 - [ ] Payload system: earnings by playtime milestones (1h, 2h, 5h, etc — configurable)
 - [ ] Payload system: earnings by mobs killed (configurable per mob type)
 - [ ] Vote rewards via Votifier/NuVotifier listener integration
@@ -75,4 +75,4 @@ Players must be able to earn, spend, and transfer virtual currency reliably — 
 | Java (not Kotlin) | Maximum NeoForge compatibility, standard tooling | — Pending |
 
 ---
-*Last updated: 2026-03-19 after Phase 1 completion — Foundation (scaffold, config, database)*
+*Last updated: 2026-03-19 after Phase 2 completion — Currency (balance, pay, top, admin commands)*
