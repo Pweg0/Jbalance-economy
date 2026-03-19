@@ -43,9 +43,10 @@ public final class JBalancePermissions {
     );
 
     // Shop commands — default: everyone can use
+    // Default: false — only players with explicit permission can create shops
     public static final PermissionNode<Boolean> SHOP_CREATE = new PermissionNode<>(
             "jbalance", "shop.create", PermissionTypes.BOOLEAN,
-            (player, uuid, ctx) -> true
+            (player, uuid, ctx) -> false
     );
 
     public static final PermissionNode<Boolean> SHOP_TELEPORT = new PermissionNode<>(
