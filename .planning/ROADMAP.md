@@ -29,7 +29,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. New players joining for the first time receive the configured starting balance automatically
   4. An admin can change a reward value in the TOML config, and the server applies it without a restart
   5. The currency name and symbol shown in chat reflect whatever is set in the TOML config
-**Plans:** 3 plans
+**Plans:** 2/3 plans executed
 
 Plans:
 - [ ] 01-01-PLAN.md — Project scaffold: ModDevGradle 2.0.x, NeoForge 21.1.220, jarJar deps, @Mod entry point
@@ -94,7 +94,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 0/3 | Not started | - |
+| 1. Foundation | 2/3 | In Progress|  |
 | 2. Currency | 0/3 | Not started | - |
 | 3. Earnings | 0/2 | Not started | - |
 | 4. Land | 0/3 | Not started | - |

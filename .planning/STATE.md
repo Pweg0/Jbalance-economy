@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 01-foundation-01-01-PLAN.md
-last_updated: "2026-03-19T04:11:57.518Z"
+stopped_at: Completed 01-foundation-01-02-PLAN.md
+last_updated: "2026-03-19T04:16:00.000Z"
 progress:
   total_phases: 4
   completed_phases: 0
   total_plans: 3
-  completed_plans: 1
+  completed_plans: 2
 ---
 
 # Project State
@@ -24,7 +24,7 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 ## Current Position
 
 Phase: 01 (foundation) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 
 ## Performance Metrics
 
@@ -47,6 +47,7 @@ Plan: 2 of 3
 
 *Updated after each plan completion*
 | Phase 01-foundation P01 | 12 | 2 tasks | 10 files |
+| Phase 01-foundation P02 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -60,6 +61,8 @@ Recent decisions affecting current work:
 - Phase 1 note: MySQL Connector/J 9.6.0 under `com.mysql` groupId (old `mysql:mysql-connector-java` abandoned)
 - [Phase 01-foundation]: slf4j-api forced to 2.0.9 to resolve HikariCP 7.0.2 vs NeoForge 21.1.220 transitive conflict
 - [Phase 01-foundation]: Gradle wrapper created manually (no global Gradle install) — gradle-wrapper.jar downloaded via curl
+- [Phase 01-foundation P02]: getEventBus() (not eventBus()) is the correct ModContainer method in FancyModLoader 4.0.42 — confirmed by decompiling loader-4.0.42.jar
+- [Phase 01-foundation P02]: All numeric ModConfigSpec values use defineInRange to prevent NeoForge config infinite correction loop (Issue #1768)
 
 ### Pending Todos
 
@@ -72,6 +75,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T04:11:57.510Z
-Stopped at: Completed 01-foundation-01-01-PLAN.md
+Last session: 2026-03-19T04:16:00Z
+Stopped at: Completed 01-foundation-01-02-PLAN.md
 Resume file: None

@@ -18,7 +18,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CURR-07**: Admin can set a player's balance with /ecoadmin set <player> <amount>
 - [ ] **CURR-08**: Player balances persist across server restarts (MySQL primary, SQLite fallback)
 - [ ] **CURR-09**: New players start with configurable initial balance
-- [ ] **CURR-10**: All currency values configurable via TOML config
+- [x] **CURR-10**: All currency values configurable via TOML config
 
 ### Earnings
 
@@ -44,8 +44,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **INFR-01**: Mod loads on NeoForge 1.21.1 dedicated server without errors
 - [ ] **INFR-02**: All monetary transactions are atomic (no double-spend via race conditions)
 - [ ] **INFR-03**: Database operations run async (no server tick blocking)
-- [ ] **INFR-04**: TOML config with hot-reload support for value changes
-- [ ] **INFR-05**: Currency name and symbol configurable in TOML
+- [x] **INFR-04**: TOML config with hot-reload support for value changes
+- [x] **INFR-05**: Currency name and symbol configurable in TOML
 
 ## v2 Requirements
 
@@ -89,7 +89,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURR-07 | Phase 2 | Pending |
 | CURR-08 | Phase 1 | Pending |
 | CURR-09 | Phase 1 | Pending |
-| CURR-10 | Phase 1 | Pending |
+| CURR-10 | Phase 1 | Complete |
 | EARN-01 | Phase 3 | Pending |
 | EARN-02 | Phase 3 | Pending |
 | EARN-03 | Phase 3 | Pending |
@@ -106,8 +106,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | INFR-01 | Phase 1 | Complete |
 | INFR-02 | Phase 1 | Pending |
 | INFR-03 | Phase 1 | Pending |
-| INFR-04 | Phase 1 | Pending |
-| INFR-05 | Phase 1 | Pending |
+| INFR-04 | Phase 1 | Complete |
+| INFR-05 | Phase 1 | Complete |
 
 **Coverage:**
 - v1 requirements: 28 total
