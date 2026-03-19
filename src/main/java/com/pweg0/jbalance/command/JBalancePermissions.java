@@ -42,6 +42,24 @@ public final class JBalancePermissions {
             (player, uuid, ctx) -> true
     );
 
+    // Shop commands — default: everyone can use
+    public static final PermissionNode<Boolean> SHOP_CREATE = new PermissionNode<>(
+            "jbalance", "shop.create", PermissionTypes.BOOLEAN,
+            (player, uuid, ctx) -> true
+    );
+
+    public static final PermissionNode<Boolean> SHOP_TELEPORT = new PermissionNode<>(
+            "jbalance", "shop.teleport", PermissionTypes.BOOLEAN,
+            (player, uuid, ctx) -> true
+    );
+
+    // Shop item limit — default: 6 items per shop
+    // LuckPerms can override per-group (e.g. VIP = 30)
+    public static final PermissionNode<Integer> SHOP_ITEM_LIMIT = new PermissionNode<>(
+            "jbalance", "shop.limit", PermissionTypes.INTEGER,
+            (player, uuid, ctx) -> 6
+    );
+
     // Admin commands — default: OP level 4 only
     public static final PermissionNode<Boolean> ADMIN_GIVE = new PermissionNode<>(
             "jbalance", "admin.give", PermissionTypes.BOOLEAN,
@@ -58,13 +76,19 @@ public final class JBalancePermissions {
             (player, uuid, ctx) -> player != null && player.hasPermissions(4)
     );
 
+    public static final PermissionNode<Boolean> ADMIN_SHOP = new PermissionNode<>(
+            "jbalance", "admin.shop", PermissionTypes.BOOLEAN,
+            (player, uuid, ctx) -> player != null && player.hasPermissions(4)
+    );
+
     /**
      * Register all permission nodes. Called from JBalance via PermissionGatherEvent.Nodes.
      */
     public static void onGatherPermissions(PermissionGatherEvent.Nodes event) {
         event.addNodes(
                 ECO_BALANCE, ECO_BALANCE_OTHER, ECO_PAY, ECO_TOP,
-                ADMIN_GIVE, ADMIN_TAKE, ADMIN_SET
+                SHOP_CREATE, SHOP_TELEPORT, SHOP_ITEM_LIMIT,
+                ADMIN_GIVE, ADMIN_TAKE, ADMIN_SET, ADMIN_SHOP
         );
     }
 }

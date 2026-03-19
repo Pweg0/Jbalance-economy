@@ -8,8 +8,10 @@ import com.mojang.brigadier.context.CommandContext;
 import com.pweg0.jbalance.JBalance;
 import com.pweg0.jbalance.service.EconomyService;
 import com.pweg0.jbalance.util.CurrencyFormatter;
+import com.pweg0.jbalance.service.ShopService;
 import com.pweg0.jbalance.util.CurrencyFormatter;
 import com.pweg0.jbalance.util.DiscordWebhook;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.commands.SharedSuggestionProvider;
@@ -56,6 +58,16 @@ public class EcoAdminCommand {
                             ctx.getSource().getServer().getPlayerNames(), builder))
                         .then(Commands.argument("amount", LongArgumentType.longArg(0))
                             .executes(EcoAdminCommand::set))))
+                .then(Commands.literal("setloja")
+                    .then(Commands.argument("player", StringArgumentType.word())
+                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                            ctx.getSource().getServer().getPlayerNames(), builder))
+                        .executes(EcoAdminCommand::adminSetLoja)))
+                .then(Commands.literal("delloja")
+                    .then(Commands.argument("player", StringArgumentType.word())
+                        .suggests((ctx, builder) -> SharedSuggestionProvider.suggest(
+                            ctx.getSource().getServer().getPlayerNames(), builder))
+                        .executes(EcoAdminCommand::adminDelLoja)))
         );
     }
 
@@ -87,6 +99,8 @@ public class EcoAdminCommand {
         src.sendSuccess(() -> Component.literal("\u00a76/ecoadmin give <jogador> <valor> \u00a77- Dar moedas"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/ecoadmin take <jogador> <valor> \u00a77- Remover moedas"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/ecoadmin set <jogador> <valor> \u00a77- Definir saldo"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/ecoadmin setloja <jogador> \u00a77- Criar loja para jogador"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/ecoadmin delloja <jogador> \u00a77- Deletar loja de jogador"), false);
         return Command.SINGLE_SUCCESS;
     }
 
@@ -229,6 +243,79 @@ public class EcoAdminCommand {
                             "\u00a76[JBalance] \u00a77Saldo de \u00a76" + record.displayName()
                             + " \u00a77definido para \u00a76" + formatted + offlineTag
                         ), false);
+                    }));
+            }));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    // -------------------------------------------------------------------------
+    // /ecoadmin setloja <player> — create shop for a player at admin's position
+    // -------------------------------------------------------------------------
+
+    private static int adminSetLoja(CommandContext<CommandSourceStack> ctx)
+            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        CommandSourceStack src = ctx.getSource();
+        String targetName = StringArgumentType.getString(ctx, "player");
+
+        EconomyService.getInstance().findByDisplayName(targetName)
+            .whenComplete((record, ex) -> src.getServer().execute(() -> {
+                if (record == null) {
+                    src.sendFailure(Component.literal(
+                        "\u00a76[JBalance] \u00a7cJogador '" + targetName + "' nao encontrado."
+                    ));
+                    return;
+                }
+                double x, y, z;
+                float yaw, pitch;
+                String dim;
+                if (src.isPlayer()) {
+                    try {
+                        ServerPlayer admin = src.getPlayerOrException();
+                        x = admin.getX(); y = admin.getY(); z = admin.getZ();
+                        yaw = admin.getYRot(); pitch = admin.getXRot();
+                        dim = admin.level().dimension().location().toString();
+                    } catch (Exception e) { return; }
+                } else {
+                    src.sendFailure(Component.literal("\u00a76[JBalance] \u00a7cApenas jogadores podem usar este comando."));
+                    return;
+                }
+                ShopService.getInstance().createShop(record.uuid(), x, y, z, yaw, pitch, dim)
+                    .whenComplete((v, ex2) -> src.getServer().execute(() -> {
+                        src.sendSuccess(() -> Component.literal(
+                            "\u00a76[JBalance] \u00a77Loja criada para \u00a76" + record.displayName()
+                        ), false);
+                        DiscordWebhook.send("Admin: Loja Criada",
+                            "**Admin:** " + src.getTextName() + "\n**Para:** " + record.displayName(),
+                            DiscordWebhook.COLOR_ADMIN);
+                    }));
+            }));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    // -------------------------------------------------------------------------
+    // /ecoadmin delloja <player> — delete shop for a player
+    // -------------------------------------------------------------------------
+
+    private static int adminDelLoja(CommandContext<CommandSourceStack> ctx) {
+        CommandSourceStack src = ctx.getSource();
+        String targetName = StringArgumentType.getString(ctx, "player");
+
+        EconomyService.getInstance().findByDisplayName(targetName)
+            .whenComplete((record, ex) -> src.getServer().execute(() -> {
+                if (record == null) {
+                    src.sendFailure(Component.literal(
+                        "\u00a76[JBalance] \u00a7cJogador '" + targetName + "' nao encontrado."
+                    ));
+                    return;
+                }
+                ShopService.getInstance().deleteShop(record.uuid())
+                    .whenComplete((v, ex2) -> src.getServer().execute(() -> {
+                        src.sendSuccess(() -> Component.literal(
+                            "\u00a76[JBalance] \u00a77Loja de \u00a76" + record.displayName() + " \u00a77removida."
+                        ), false);
+                        DiscordWebhook.send("Admin: Loja Removida",
+                            "**Admin:** " + src.getTextName() + "\n**Jogador:** " + record.displayName(),
+                            DiscordWebhook.COLOR_ADMIN);
                     }));
             }));
         return Command.SINGLE_SUCCESS;

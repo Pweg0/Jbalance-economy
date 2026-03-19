@@ -6,10 +6,14 @@ import com.pweg0.jbalance.command.JBalancePermissions;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.DatabaseManager;
 import com.pweg0.jbalance.data.db.PlaytimeRepository;
+import com.pweg0.jbalance.data.db.ShopRepository;
 import com.pweg0.jbalance.event.EarningsEventHandler;
 import com.pweg0.jbalance.event.PlayerEventHandler;
 import com.pweg0.jbalance.service.EconomyService;
 import com.pweg0.jbalance.service.PlaytimeService;
+import com.pweg0.jbalance.service.ShopService;
+import com.pweg0.jbalance.shop.ShopDisplayManager;
+import com.pweg0.jbalance.shop.ShopInteractionHandler;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -27,6 +31,8 @@ public class JBalance {
     private static DatabaseManager dbManager;
     private static EconomyService economyService;
     private static PlaytimeService playtimeService;
+    private static ShopService shopService;
+    private static ShopDisplayManager shopDisplayManager;
 
     public JBalance(ModContainer container) {
         LOGGER.info("[JBalance] Initializing JBalance economy mod...");
@@ -52,6 +58,7 @@ public class JBalance {
         NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onPlayerTick);
         NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onPlayerLoggedOut);
+        NeoForge.EVENT_BUS.addListener(ShopInteractionHandler::onLeftClickBlock);
     }
 
     private void onConfigReloading(ModConfigEvent.Reloading event) {
@@ -69,6 +76,13 @@ public class JBalance {
             t.setDaemon(true);
             return t;
         }));
+        ShopRepository shopRepo = new ShopRepository(dbManager.getDataSource(), dbManager.isMysql());
+        shopService = new ShopService(shopRepo, java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "JBalance-Shop-DB");
+            t.setDaemon(true);
+            return t;
+        }));
+        shopDisplayManager = new ShopDisplayManager();
         LOGGER.info("[JBalance] Database and economy service initialized");
     }
 

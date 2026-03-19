@@ -16,5 +16,7 @@ public class CommandRegistrar {
         CommandDispatcher<CommandSourceStack> dispatcher = event.getDispatcher();
         EcoCommand.register(dispatcher);
         EcoAdminCommand.register(dispatcher);
+        ShopCommand.register(dispatcher);
+        JShopCommand.register(dispatcher);
     }
 }
