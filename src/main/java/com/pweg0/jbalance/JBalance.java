@@ -59,6 +59,7 @@ public class JBalance {
         NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onPlayerLoggedOut);
         NeoForge.EVENT_BUS.addListener(ShopInteractionHandler::onLeftClickBlock);
+        NeoForge.EVENT_BUS.addListener(ShopInteractionHandler::onBlockBreak);
     }
 
     private void onConfigReloading(ModConfigEvent.Reloading event) {

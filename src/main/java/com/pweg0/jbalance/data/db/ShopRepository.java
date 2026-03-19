@@ -225,6 +225,24 @@ public class ShopRepository {
         }
     }
 
+    public List<ShopItemData> getShopItemsByStoragePos(int sx, int sy, int sz, String dimension) {
+        String sql = "SELECT si.* FROM jbalance_shop_items si " +
+                     "JOIN jbalance_shops s ON si.shop_uuid = s.uuid " +
+                     "WHERE si.storage_x = ? AND si.storage_y = ? AND si.storage_z = ? AND s.dimension = ? AND si.active = 1";
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, sx); ps.setInt(2, sy); ps.setInt(3, sz);
+            ps.setString(4, dimension);
+            try (ResultSet rs = ps.executeQuery()) {
+                List<ShopItemData> list = new ArrayList<>();
+                while (rs.next()) list.add(mapItem(rs));
+                return list;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("getShopItemsByStoragePos failed", e);
+        }
+    }
+
     public int countShopItems(UUID shopUuid) {
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(

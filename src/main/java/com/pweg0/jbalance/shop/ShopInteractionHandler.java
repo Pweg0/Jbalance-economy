@@ -22,6 +22,9 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.entity.BaseContainerBlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
+import net.neoforged.neoforge.event.level.BlockEvent;
+
+import java.util.List;
 
 import java.util.UUID;
 
@@ -396,6 +399,51 @@ public class ShopInteractionHandler {
                 ));
                 DiscordWebhook.logShopItemRemoved(player.getName().getString(), removedItemName);
             }));
+    }
+
+    /**
+     * When a block is broken, check if it's a shop display or storage block.
+     * If so, deactivate the shop item and remove the floating display.
+     */
+    public static void onBlockBreak(BlockEvent.BreakEvent event) {
+        if (!(event.getPlayer() instanceof ServerPlayer player)) return;
+
+        BlockPos pos = event.getPos();
+        ServerLevel level = (ServerLevel) player.level();
+        String dimension = level.dimension().location().toString();
+        int x = pos.getX(), y = pos.getY(), z = pos.getZ();
+
+        // Check if this block is a display block
+        ShopService.getInstance().getShopItemByDisplayPos(x, y, z, dimension)
+            .whenComplete((displayItem, ex) -> {
+                if (displayItem != null) {
+                    deactivateShopItem(player, displayItem, level, "mostruario quebrado");
+                }
+            });
+
+        // Check if this block is a storage block (may have multiple items using it)
+        var repo = ShopService.getInstance().getRepo();
+        List<ShopRepository.ShopItemData> storageItems = repo.getShopItemsByStoragePos(x, y, z, dimension);
+        for (var item : storageItems) {
+            deactivateShopItem(player, item, level, "bau/barrel quebrado");
+        }
+    }
+
+    private static void deactivateShopItem(ServerPlayer player, ShopRepository.ShopItemData item,
+                                            ServerLevel level, String reason) {
+        String itemName = BuiltInRegistries.ITEM.get(
+            ResourceLocation.parse(item.itemId())).getDescription().getString();
+
+        ShopService.getInstance().getRepo().setShopItemActive(item.id(), false);
+        ShopDisplayManager.getInstance().removeDisplay(level, item.id());
+
+        player.sendSystemMessage(Component.literal(
+            "\u00a76[JBalance] \u00a7eItem \u00a76" + itemName +
+            " \u00a7eremovido da loja (" + reason + ")."
+        ));
+
+        DiscordWebhook.logShopItemRemoved(player.getName().getString(),
+            itemName + " (" + reason + ")");
     }
 
     private static void notifyOwnerOutOfStock(net.minecraft.server.MinecraftServer server,
