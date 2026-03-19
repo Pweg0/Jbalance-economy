@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 2 context gathered
-last_updated: "2026-03-19T14:56:08.080Z"
+stopped_at: Completed 02-01-PLAN.md
+last_updated: "2026-03-19T15:31:21.745Z"
 progress:
   total_phases: 3
   completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  total_plans: 6
+  completed_plans: 4
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Players must be able to earn, spend, and transfer virtual currency reliably — the economy is the backbone that every other feature depends on.
-**Current focus:** Phase 01 — foundation
+**Current focus:** Phase 02 — currency
 
 ## Current Position
 
-Phase: 01 (foundation) — COMPLETE
-Plan: 3 of 3 (all plans complete)
+Phase: 02 (currency) — EXECUTING
+Plan: 2 of 3
 
 ## Performance Metrics
 
@@ -49,6 +49,7 @@ Plan: 3 of 3 (all plans complete)
 | Phase 01-foundation P01 | 12 | 2 tasks | 10 files |
 | Phase 01-foundation P02 | 3 | 2 tasks | 3 files |
 | Phase 01-foundation P03 | 3 | 2 tasks | 7 files |
+| Phase 02-currency P01 | 9 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting current work:
 - [Phase 01-foundation P03]: ServerAboutToStartEvent used for DB init (not FMLCommonSetupEvent) — config values guaranteed available at this point
 - [Phase 01-foundation P03]: EconomyService.initPlayerIfAbsent reads STARTING_BALANCE on game thread before going async to avoid ConfigValue.get() from DB_EXECUTOR threads
 - [Phase 01-foundation P03]: BalanceRepository uses two dialect-specific SQL strings for initPlayerIfAbsent (INSERT IGNORE INTO vs INSERT OR IGNORE INTO)
+- [Phase 02-currency]: com.mojang.brigadier.CommandDispatcher is the correct import in NeoForge 1.21.1 (not net.minecraft.commands.CommandDispatcher which does not exist)
+- [Phase 02-currency]: findByDisplayName uses LOWER() for SQLite and plain = ? for MySQL (case-insensitive by collation)
 
 ### Pending Todos
 
@@ -79,6 +82,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T14:56:08.056Z
-Stopped at: Phase 2 context gathered
-Resume file: .planning/phases/02-currency/02-CONTEXT.md
+Last session: 2026-03-19T15:31:21.735Z
+Stopped at: Completed 02-01-PLAN.md
+Resume file: None

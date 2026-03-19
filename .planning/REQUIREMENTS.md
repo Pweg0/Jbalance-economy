@@ -9,13 +9,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Currency
 
-- [ ] **CURR-01**: Player can check own balance with /eco balance
-- [ ] **CURR-02**: Player can check another player's balance with /eco balance <player>
-- [ ] **CURR-03**: Player can send coins to another player with /eco pay <player> <amount>
-- [ ] **CURR-04**: Player can view top 10 richest players with /eco top
-- [ ] **CURR-05**: Admin can give coins to a player with /ecoadmin give <player> <amount>
-- [ ] **CURR-06**: Admin can take coins from a player with /ecoadmin take <player> <amount>
-- [ ] **CURR-07**: Admin can set a player's balance with /ecoadmin set <player> <amount>
+- [x] **CURR-01**: Player can check own balance with /eco balance
+- [x] **CURR-02**: Player can check another player's balance with /eco balance <player>
+- [x] **CURR-03**: Player can send coins to another player with /eco pay <player> <amount>
+- [x] **CURR-04**: Player can view top 10 richest players with /eco top
+- [x] **CURR-05**: Admin can give coins to a player with /ecoadmin give <player> <amount>
+- [x] **CURR-06**: Admin can take coins from a player with /ecoadmin take <player> <amount>
+- [x] **CURR-07**: Admin can set a player's balance with /ecoadmin set <player> <amount>
 - [x] **CURR-08**: Player balances persist across server restarts (MySQL primary, SQLite fallback)
 - [x] **CURR-09**: New players start with configurable initial balance
 - [x] **CURR-10**: All currency values configurable via TOML config
@@ -80,13 +80,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CURR-01 | Phase 2 | Pending |
-| CURR-02 | Phase 2 | Pending |
-| CURR-03 | Phase 2 | Pending |
-| CURR-04 | Phase 2 | Pending |
-| CURR-05 | Phase 2 | Pending |
-| CURR-06 | Phase 2 | Pending |
-| CURR-07 | Phase 2 | Pending |
+| CURR-01 | Phase 2 | Complete |
+| CURR-02 | Phase 2 | Complete |
+| CURR-03 | Phase 2 | Complete |
+| CURR-04 | Phase 2 | Complete |
+| CURR-05 | Phase 2 | Complete |
+| CURR-06 | Phase 2 | Complete |
+| CURR-07 | Phase 2 | Complete |
 | CURR-08 | Phase 1 | Complete |
 | CURR-09 | Phase 1 | Complete |
 | CURR-10 | Phase 1 | Complete |
