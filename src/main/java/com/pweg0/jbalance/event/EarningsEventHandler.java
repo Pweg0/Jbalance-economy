@@ -2,6 +2,7 @@ package com.pweg0.jbalance.event;
 
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.service.EconomyService;
+import com.pweg0.jbalance.service.PlaytimeService;
 import com.pweg0.jbalance.util.CurrencyFormatter;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -10,6 +11,8 @@ import net.minecraft.world.entity.MobSpawnType;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDeathEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.PlayerTickEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 
 import java.util.Map;
@@ -92,29 +95,61 @@ public class EarningsEventHandler {
             shouldFlush = flushTickCounter >= intervalSeconds * 20;
         }
 
-        if (!shouldFlush || pendingCoins.isEmpty()) return;
+        if (shouldFlush && !pendingCoins.isEmpty()) {
+            // Reset counter before iterating to avoid missing kills during flush
+            flushTickCounter = 0;
 
-        // Reset counter before iterating to avoid missing kills during flush
-        flushTickCounter = 0;
+            // Iterate over pending coins and flush each player
+            for (UUID uuid : pendingCoins.keySet()) {
+                Long coins = pendingCoins.remove(uuid);
+                Integer kills = pendingKills.remove(uuid);
+                if (coins == null || coins <= 0) continue;
+                int killCount = kills != null ? kills : 1;
 
-        // Iterate over pending coins and flush each player
-        for (UUID uuid : pendingCoins.keySet()) {
-            Long coins = pendingCoins.remove(uuid);
-            Integer kills = pendingKills.remove(uuid);
-            if (coins == null || coins <= 0) continue;
-            int killCount = kills != null ? kills : 1;
+                // Send notification to online player (game thread — we are inside ServerTickEvent)
+                ServerPlayer onlinePlayer = event.getServer().getPlayerList().getPlayer(uuid);
+                if (onlinePlayer != null) {
+                    onlinePlayer.sendSystemMessage(Component.literal(
+                        "§6[JBalance] §7Voce recebeu §6" + CurrencyFormatter.formatBalance(coins)
+                        + " §7por matar §6" + killCount + " §7mobs"
+                    ));
+                }
 
-            // Send notification to online player (game thread — we are inside ServerTickEvent)
-            ServerPlayer onlinePlayer = event.getServer().getPlayerList().getPlayer(uuid);
-            if (onlinePlayer != null) {
-                onlinePlayer.sendSystemMessage(Component.literal(
-                    "§6[JBalance] §7Voce recebeu §6" + CurrencyFormatter.formatBalance(coins)
-                    + " §7por matar §6" + killCount + " §7mobs"
-                ));
+                // Credit coins asynchronously — fire and forget
+                EconomyService.getInstance().give(uuid, coins);
             }
-
-            // Credit coins asynchronously — fire and forget
-            EconomyService.getInstance().give(uuid, coins);
         }
+
+        // Periodic playtime flush (every 5 minutes)
+        PlaytimeService svc = PlaytimeService.getInstance();
+        if (svc != null) svc.onServerTick();
+    }
+
+    /**
+     * Handles player tick events for playtime tracking.
+     * Delegates to PlaytimeService for AFK detection and active time accumulation.
+     */
+    public static void onPlayerTick(PlayerTickEvent.Post event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        PlaytimeService svc = PlaytimeService.getInstance();
+        if (svc != null) svc.onTick(player);
+    }
+
+    /**
+     * Handles player login for playtime tracking. Loads persisted playtime from DB.
+     */
+    public static void onPlayerLoggedIn(PlayerEvent.PlayerLoggedInEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        PlaytimeService svc = PlaytimeService.getInstance();
+        if (svc != null) svc.onLogin(player);
+    }
+
+    /**
+     * Handles player logout for playtime tracking. Flushes playtime to DB.
+     */
+    public static void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (!(event.getEntity() instanceof ServerPlayer player)) return;
+        PlaytimeService svc = PlaytimeService.getInstance();
+        if (svc != null) svc.onLogout(player.getUUID());
     }
 }

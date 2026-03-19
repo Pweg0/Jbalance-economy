@@ -4,9 +4,11 @@ import com.mojang.logging.LogUtils;
 import com.pweg0.jbalance.command.CommandRegistrar;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.DatabaseManager;
+import com.pweg0.jbalance.data.db.PlaytimeRepository;
 import com.pweg0.jbalance.event.EarningsEventHandler;
 import com.pweg0.jbalance.event.PlayerEventHandler;
 import com.pweg0.jbalance.service.EconomyService;
+import com.pweg0.jbalance.service.PlaytimeService;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
@@ -23,6 +25,7 @@ public class JBalance {
 
     private static DatabaseManager dbManager;
     private static EconomyService economyService;
+    private static PlaytimeService playtimeService;
 
     public JBalance(ModContainer container) {
         LOGGER.info("[JBalance] Initializing JBalance economy mod...");
@@ -42,6 +45,9 @@ public class JBalance {
         NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onFinalizeSpawn);
         NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onLivingDeath);
         NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onServerTick);
+        NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onPlayerTick);
+        NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onPlayerLoggedIn);
+        NeoForge.EVENT_BUS.addListener(EarningsEventHandler::onPlayerLoggedOut);
     }
 
     private void onConfigReloading(ModConfigEvent.Reloading event) {
@@ -53,10 +59,17 @@ public class JBalance {
     private static void onServerAboutToStart(ServerAboutToStartEvent event) {
         dbManager = new DatabaseManager();
         economyService = new EconomyService(dbManager);
+        PlaytimeRepository playtimeRepo = new PlaytimeRepository(dbManager.getDataSource(), dbManager.isMysql());
+        playtimeService = new PlaytimeService(playtimeRepo, java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "JBalance-Playtime-DB");
+            t.setDaemon(true);
+            return t;
+        }));
         LOGGER.info("[JBalance] Database and economy service initialized");
     }
 
     private static void onServerStopping(ServerStoppingEvent event) {
+        if (playtimeService != null) playtimeService.flushAll();
         if (economyService != null) economyService.shutdown();
         if (dbManager != null) dbManager.shutdown();
         LOGGER.info("[JBalance] Database connections closed");
