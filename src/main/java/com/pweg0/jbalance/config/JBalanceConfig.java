@@ -108,7 +108,7 @@ public class JBalanceConfig {
 
         builder.comment("Mob kill reward settings").push("mob_kills");
         MOB_KILLS_ENABLED = builder.comment("Enable/disable mob kill rewards (true = players earn coins from killing mobs)")
-                                    .define("enabled", true);
+                                    .define("enabled", false);
         MOB_KILL_REWARDS = builder
             .comment("Mob kill rewards. Format: \"minecraft:mob_id=reward_amount\". Only listed mobs give coins.")
             .defineListAllowEmpty("rewards",
