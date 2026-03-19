@@ -110,10 +110,13 @@ public class JBalanceConfig {
             .comment("Mob kill rewards. Format: \"minecraft:mob_id=reward_amount\". Only listed mobs give coins.")
             .defineListAllowEmpty("rewards",
                 java.util.List.of(
-                    "minecraft:zombie=10", "minecraft:skeleton=10",
-                    "minecraft:creeper=15", "minecraft:spider=10",
-                    "minecraft:enderman=25", "minecraft:witch=20",
-                    "minecraft:blaze=30", "minecraft:wither_skeleton=40"),
+                    "minecraft:zombie=1", "minecraft:skeleton=1",
+                    "minecraft:creeper=2", "minecraft:spider=1",
+                    "minecraft:enderman=3", "minecraft:witch=3",
+                    "minecraft:blaze=4", "minecraft:wither_skeleton=5",
+                    "minecraft:phantom=2", "minecraft:guardian=2",
+                    "minecraft:elder_guardian=15", "minecraft:warden=50",
+                    "minecraft:ender_dragon=500", "minecraft:wither=200"),
                 e -> e instanceof String s && s.matches("[a-z0-9_.-]+:[a-z0-9_/.-]+=\\d+"));
         KILL_NOTIFICATION_INTERVAL = builder
             .comment("Seconds between batched kill reward notifications (0 = immediate per kill)")
@@ -125,8 +128,10 @@ public class JBalanceConfig {
             .comment("Playtime milestones. Format: \"hours=N,reward=X\". Each milestone granted once per player.")
             .defineListAllowEmpty("milestones",
                 java.util.List.of(
-                    "hours=1,reward=100", "hours=2,reward=200",
-                    "hours=5,reward=500", "hours=10,reward=1000", "hours=24,reward=2500"),
+                    "hours=1,reward=50", "hours=3,reward=100",
+                    "hours=6,reward=200", "hours=12,reward=400",
+                    "hours=24,reward=750", "hours=48,reward=1500",
+                    "hours=100,reward=3000"),
                 e -> e instanceof String s && s.matches("hours=\\d+,reward=\\d+"));
         AFK_TIMEOUT_MINUTES = builder
             .comment("Minutes of inactivity before a player is marked AFK (AFK time does not count toward milestones)")
