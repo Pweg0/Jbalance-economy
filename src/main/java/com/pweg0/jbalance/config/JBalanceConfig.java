@@ -38,6 +38,7 @@ public class JBalanceConfig {
     public static final ModConfigSpec.LongValue SHOP_RELOCATE_COOLDOWN_DAYS;
 
     // Earnings - Mob Kills section
+    public static final ModConfigSpec.BooleanValue MOB_KILLS_ENABLED;
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> MOB_KILL_REWARDS;
     public static final ModConfigSpec.LongValue KILL_NOTIFICATION_INTERVAL;
 
@@ -106,6 +107,8 @@ public class JBalanceConfig {
         builder.comment("JBalance Earnings Settings").push("earnings");
 
         builder.comment("Mob kill reward settings").push("mob_kills");
+        MOB_KILLS_ENABLED = builder.comment("Enable/disable mob kill rewards (true = players earn coins from killing mobs)")
+                                    .define("enabled", true);
         MOB_KILL_REWARDS = builder
             .comment("Mob kill rewards. Format: \"minecraft:mob_id=reward_amount\". Only listed mobs give coins.")
             .defineListAllowEmpty("rewards",

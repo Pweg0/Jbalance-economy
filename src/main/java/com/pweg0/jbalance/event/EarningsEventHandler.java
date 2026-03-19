@@ -51,6 +51,8 @@ public class EarningsEventHandler {
      * Reward is looked up from TOML config on the game thread and accumulated for batched notification.
      */
     public static void onLivingDeath(LivingDeathEvent event) {
+        // Check if mob kills are enabled
+        if (!JBalanceConfig.MOB_KILLS_ENABLED.get()) return;
         // Killer must be a ServerPlayer
         if (!(event.getSource().getEntity() instanceof ServerPlayer player)) return;
         // Skip PvP kills — dead entity must not be a player
