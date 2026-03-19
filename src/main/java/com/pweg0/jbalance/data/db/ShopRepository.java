@@ -243,6 +243,37 @@ public class ShopRepository {
         }
     }
 
+    /**
+     * Updates sell/buy values on an existing shop item.
+     * Merges: if new value > 0, overwrite; if 0, keep existing.
+     */
+    public void mergeShopItem(int itemId, int sellQty, long sellPrice, int buyQty, long buyPrice) {
+        StringBuilder sql = new StringBuilder("UPDATE jbalance_shop_items SET ");
+        List<Object> params = new ArrayList<>();
+        if (sellQty > 0) {
+            sql.append("sell_qty = ?, sell_price = ?, ");
+            params.add(sellQty); params.add(sellPrice);
+        }
+        if (buyQty > 0) {
+            sql.append("buy_qty = ?, buy_price = ?, ");
+            params.add(buyQty); params.add(buyPrice);
+        }
+        // Remove trailing comma
+        String s = sql.toString().replaceAll(", $", " WHERE id = ?");
+        params.add(itemId);
+        try (Connection c = dataSource.getConnection();
+             PreparedStatement ps = c.prepareStatement(s)) {
+            for (int i = 0; i < params.size(); i++) {
+                Object p = params.get(i);
+                if (p instanceof Integer) ps.setInt(i + 1, (Integer) p);
+                else if (p instanceof Long) ps.setLong(i + 1, (Long) p);
+            }
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("mergeShopItem failed for id " + itemId, e);
+        }
+    }
+
     public int countShopItems(UUID shopUuid) {
         try (Connection c = dataSource.getConnection();
              PreparedStatement ps = c.prepareStatement(

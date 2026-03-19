@@ -130,7 +130,31 @@ public class ShopInteractionHandler {
 
                 String itemId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
 
-                // Create shop item in DB
+                // Check if there's already an item at this display position — merge if so
+                var repo = ShopService.getInstance().getRepo();
+                ShopRepository.ShopItemData existing = repo.getShopItemByDisplayPos(
+                    displayPos.getX(), displayPos.getY(), displayPos.getZ(),
+                    level.dimension().location().toString());
+
+                if (existing != null && existing.shopUuid().equals(uuid)) {
+                    // Merge: update existing item with new sell/buy values
+                    repo.mergeShopItem(existing.id(),
+                        session.sellQty(), session.sellPrice(),
+                        session.buyQty(), session.buyPrice());
+
+                    String desc = buildDesc(session, existing);
+                    player.sendSystemMessage(Component.literal(
+                        "\u00a76[JBalance] \u00a7aMostruario atualizado!\n" +
+                        "\u00a76[JBalance] \u00a77" + held.getHoverName().getString() + " - " + desc
+                    ));
+                    DiscordWebhook.logShopItemExposed(
+                        player.getName().getString(), held.getHoverName().getString(), desc);
+                    ShopSetupSession.remove(uuid);
+                    event.setCanceled(true);
+                    return;
+                }
+
+                // Create new shop item in DB
                 ShopService.getInstance().createShopItem(uuid,
                         displayPos.getX(), displayPos.getY(), displayPos.getZ(),
                         pos.getX(), pos.getY(), pos.getZ(),
@@ -465,6 +489,28 @@ public class ShopInteractionHandler {
 
         DiscordWebhook.logShopItemRemoved(player.getName().getString(),
             itemName + " (" + reason + ")");
+    }
+
+    /**
+     * Builds description string for merged or new shop item.
+     */
+    private static String buildDesc(ShopSetupSession.Session session, ShopRepository.ShopItemData existing) {
+        StringBuilder desc = new StringBuilder();
+        int sellQty = session.sellQty() > 0 ? session.sellQty() : (existing != null ? existing.sellQty() : 0);
+        long sellPrice = session.sellPrice() > 0 ? session.sellPrice() : (existing != null ? existing.sellPrice() : 0);
+        int buyQty = session.buyQty() > 0 ? session.buyQty() : (existing != null ? existing.buyQty() : 0);
+        long buyPrice = session.buyPrice() > 0 ? session.buyPrice() : (existing != null ? existing.buyPrice() : 0);
+
+        if (sellQty > 0) {
+            desc.append("Venda: ").append(sellQty).append("x por ")
+                .append(CurrencyFormatter.formatBalance(sellPrice));
+        }
+        if (buyQty > 0) {
+            if (!desc.isEmpty()) desc.append(" | ");
+            desc.append("Compra: ").append(buyQty).append("x por ")
+                .append(CurrencyFormatter.formatBalance(buyPrice));
+        }
+        return desc.toString();
     }
 
     private static void notifyOwnerOutOfStock(net.minecraft.server.MinecraftServer server,

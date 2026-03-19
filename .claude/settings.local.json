@@ -3,7 +3,8 @@
     "allow": [
       "Bash(./gradlew build:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"fix: prevent duplicate left-click events + protect shop blocks from other players:*)"
+      "Bash(git commit -m \"fix: prevent duplicate left-click events + protect shop blocks from other players:*)",
+      "Bash(git commit -m \"fix: /jshop compra on existing display merges instead of creating duplicate:*)"
     ]
   }
 }
