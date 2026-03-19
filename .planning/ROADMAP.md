@@ -29,12 +29,12 @@ Decimal phases appear between their surrounding integers in numeric order.
   3. New players joining for the first time receive the configured starting balance automatically
   4. An admin can change a reward value in the TOML config, and the server applies it without a restart
   5. The currency name and symbol shown in chat reflect whatever is set in the TOML config
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 01-01: Project scaffold — ModDevGradle 2.0.x setup, NeoForge 21.1.220, jarJar for HikariCP + MySQL Connector/J + sqlite-jdbc
-- [ ] 01-02: DatabaseManager — HikariCP pool, schema migration, MySQL/SQLite routing, async executor
-- [ ] 01-03: TOML config — ModConfigSpec SERVER type, all configurable values, hot-reload support
+- [ ] 01-01-PLAN.md — Project scaffold: ModDevGradle 2.0.x, NeoForge 21.1.220, jarJar deps, @Mod entry point
+- [ ] 01-02-PLAN.md — TOML config: ModConfigSpec SERVER type, currency formatter, hot-reload wiring
+- [ ] 01-03-PLAN.md — Database layer: HikariCP dual-DB, BalanceRepository, EconomyService, player first-join handler
 
 ### Phase 2: Currency
 **Goal**: Players can check balances, send coins to each other, and view the wealth rankings; admins can give, take, and set any player's balance from the command line.
