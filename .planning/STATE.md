@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Completed 03-earnings-01-PLAN.md
-last_updated: "2026-03-19T17:18:00.030Z"
+stopped_at: Completed 03-earnings-02-PLAN.md
+last_updated: "2026-03-19T17:22:00.000Z"
 progress:
   total_phases: 3
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
 ---
 
 # Project State
@@ -23,8 +23,8 @@ See: .planning/PROJECT.md (updated 2026-03-19)
 
 ## Current Position
 
-Phase: 03 (earnings) — EXECUTING
-Plan: 1 of 2
+Phase: 03 (earnings) — COMPLETE
+Plan: 2 of 2 (all plans complete)
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Plan: 1 of 2
 | Phase 02-currency P02 | 3 | 2 tasks | 1 files |
 | Phase 02-currency P03 | 4 | 1 tasks | 1 files |
 | Phase 03-earnings P01 | 3 | 2 tasks | 3 files |
+| Phase 03-earnings P02 | 3 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -79,6 +80,11 @@ Recent decisions affecting current work:
 - [Phase 02-currency]: /ecoadmin set uses longArg(0) to allow zeroing a balance; give and take use longArg(1) minimum
 - [Phase 03-earnings]: FinalizeSpawnEvent is top-level class in NeoForge 1.21.1 (not MobSpawnEvent.FinalizeSpawn inner class as in 1.20.6)
 - [Phase 03-earnings]: Kill accumulator uses ConcurrentHashMap.merge() per player UUID, flushed via ServerTickEvent.Post tick counter (intervalSeconds * 20 ticks)
+- [Phase 03-earnings P02]: PlayerState uses mutable class (not record) to avoid per-tick object allocation in hot path
+- [Phase 03-earnings P02]: Milestone claim-in-memory-first pattern prevents double-award on async lag
+- [Phase 03-earnings P02]: PlaytimeService has dedicated single-thread daemon executor separate from EconomyService.DB_EXECUTOR
+- [Phase 03-earnings P02]: DatabaseManager.runMigrations() now splits on semicolons to support multi-statement schema files
+- [Phase 03-earnings P02]: earnings TOML restructured — single push(earnings) wrapping push(mob_kills) and push(milestones)
 
 ### Pending Todos
 
@@ -91,6 +97,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T17:18:00.026Z
-Stopped at: Completed 03-earnings-01-PLAN.md
+Last session: 2026-03-19T17:22:00.000Z
+Stopped at: Completed 03-earnings-02-PLAN.md
 Resume file: None

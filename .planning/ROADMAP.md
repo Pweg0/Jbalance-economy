@@ -14,7 +14,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [x] **Phase 1: Foundation** - NeoForge project scaffold, dual-database layer, TOML config, and project infrastructure (completed 2026-03-19)
 - [x] **Phase 2: Currency** - Full player and admin currency command suite with balance persistence (completed 2026-03-19)
-- [ ] **Phase 3: Earnings** - Passive currency earning from mob kills and playtime milestones
+- [x] **Phase 3: Earnings** - Passive currency earning from mob kills and playtime milestones (completed 2026-03-19)
 
 ## Phase Details
 
@@ -62,11 +62,11 @@ Plans:
   3. When a player's total playtime crosses a configured milestone (e.g. 1h, 2h, 5h), they receive the milestone reward exactly once and are notified in chat
   4. If a player disconnects mid-session, their playtime progress toward the next milestone is preserved and they continue accumulating toward it on next login
   5. An admin can change any mob reward or milestone threshold in TOML and the updated values apply on next server reload
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
-- [ ] 03-01-PLAN.md — Mob kill earnings: TOML config for mob rewards, EarningsEventHandler with LivingDeathEvent, spawner tagging, kill accumulator, batched notifications
-- [ ] 03-02-PLAN.md — Playtime milestones: milestone TOML config, PlaytimeRepository, PlaytimeService with AFK detection, milestone tracking, DB persistence
+- [x] 03-01-PLAN.md — Mob kill earnings: TOML config for mob rewards, EarningsEventHandler with LivingDeathEvent, spawner tagging, kill accumulator, batched notifications
+- [x] 03-02-PLAN.md — Playtime milestones: milestone TOML config, PlaytimeRepository, PlaytimeService with AFK detection, milestone tracking, DB persistence
 
 
 ## Progress
@@ -78,4 +78,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-03-19 |
 | 2. Currency | 3/3 | Complete   | 2026-03-19 |
-| 3. Earnings | 1/2 | In Progress|  |
+| 3. Earnings | 2/2 | Complete   | 2026-03-19 |
