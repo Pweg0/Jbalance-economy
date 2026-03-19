@@ -1,0 +1,23 @@
+modLoader="javafml"
+loaderVersion="[1,)"
+license="All Rights Reserved"
+
+[[mods]]
+modId="jbalance"
+version="${mod_version}"
+displayName="JBalance"
+description="Economy mod for ALL THE MONS server."
+
+[[dependencies.jbalance]]
+    modId="neoforge"
+    type="required"
+    versionRange="[21.1.220,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.jbalance]]
+    modId="minecraft"
+    type="required"
+    versionRange="[1.21.1,1.22)"
+    ordering="NONE"
+    side="BOTH"

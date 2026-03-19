@@ -32,6 +32,13 @@ repositories {
     mavenCentral()
 }
 
+// NeoForge 21.1.220 ships slf4j-api 2.0.9 with a strict constraint.
+// HikariCP 7.0.2 requests 2.0.17 but is compatible with 2.0.9 at runtime
+// since NeoForge bundles slf4j internally. Force the version NeoForge requires.
+configurations.configureEach {
+    resolutionStrategy.force 'org.slf4j:slf4j-api:2.0.9'
+}
+
 dependencies {
     jarJar(implementation("com.zaxxer:HikariCP")) {
         version {
