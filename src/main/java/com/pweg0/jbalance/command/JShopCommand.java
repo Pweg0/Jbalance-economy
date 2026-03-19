@@ -47,6 +47,7 @@ public class JShopCommand {
                 // /jshop venda 1 20
                 // /jshop venda 1 20 : compra 1 5
                 .then(Commands.literal("venda")
+                    .requires(JShopCommand::canSell)
                     .then(Commands.argument("vqtd", IntegerArgumentType.integer(1))
                         .then(Commands.argument("vpreco", LongArgumentType.longArg(1))
                             .executes(JShopCommand::sellOnly)
@@ -58,6 +59,7 @@ public class JShopCommand {
                 // /jshop compra 1 5
                 // /jshop compra 1 5 : venda 1 20
                 .then(Commands.literal("compra")
+                    .requires(JShopCommand::canBuy)
                     .then(Commands.argument("cqtd", IntegerArgumentType.integer(1))
                         .then(Commands.argument("cpreco", LongArgumentType.longArg(1))
                             .executes(JShopCommand::buyOnly)
@@ -79,6 +81,20 @@ public class JShopCommand {
                 .then(Commands.literal("help")
                     .executes(JShopCommand::help))
         );
+    }
+
+    // ── Permission checks ──
+
+    private static boolean canSell(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try { return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.SHOP_SELL); }
+        catch (Exception e) { return true; }
+    }
+
+    private static boolean canBuy(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try { return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.SHOP_BUY); }
+        catch (Exception e) { return true; }
     }
 
     // ── Command handlers — all delegate to startSetup ──

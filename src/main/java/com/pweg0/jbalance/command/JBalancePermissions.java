@@ -53,6 +53,16 @@ public final class JBalancePermissions {
             (player, uuid, ctx) -> true
     );
 
+    public static final PermissionNode<Boolean> SHOP_SELL = new PermissionNode<>(
+            "jbalance", "shop.sell", PermissionTypes.BOOLEAN,
+            (player, uuid, ctx) -> true
+    );
+
+    public static final PermissionNode<Boolean> SHOP_BUY = new PermissionNode<>(
+            "jbalance", "shop.buy", PermissionTypes.BOOLEAN,
+            (player, uuid, ctx) -> true
+    );
+
     // Shop item limit — default: 6 items per shop
     // LuckPerms can override per-group (e.g. VIP = 30)
     public static final PermissionNode<Integer> SHOP_ITEM_LIMIT = new PermissionNode<>(
@@ -87,7 +97,7 @@ public final class JBalancePermissions {
     public static void onGatherPermissions(PermissionGatherEvent.Nodes event) {
         event.addNodes(
                 ECO_BALANCE, ECO_BALANCE_OTHER, ECO_PAY, ECO_TOP,
-                SHOP_CREATE, SHOP_TELEPORT, SHOP_ITEM_LIMIT,
+                SHOP_CREATE, SHOP_TELEPORT, SHOP_SELL, SHOP_BUY, SHOP_ITEM_LIMIT,
                 ADMIN_GIVE, ADMIN_TAKE, ADMIN_SET, ADMIN_SHOP
         );
     }

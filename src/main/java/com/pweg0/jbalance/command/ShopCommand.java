@@ -15,6 +15,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
 import net.minecraft.network.chat.Style;
+import net.neoforged.neoforge.server.permission.PermissionAPI;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
@@ -37,18 +38,21 @@ public class ShopCommand {
         // /setloja
         dispatcher.register(
             Commands.literal("setloja")
+                .requires(ShopCommand::canCreate)
                 .executes(ShopCommand::setLoja)
         );
 
         // /delloja
         dispatcher.register(
             Commands.literal("delloja")
+                .requires(ShopCommand::canCreate)
                 .executes(ShopCommand::delLoja)
         );
 
         // /loja <player>
         dispatcher.register(
             Commands.literal("loja")
+                .requires(ShopCommand::canTeleport)
                 .then(Commands.argument("jogador", StringArgumentType.word())
                     .suggests((ctx, builder) -> {
                         ShopService svc = ShopService.getInstance();
@@ -67,8 +71,23 @@ public class ShopCommand {
         // /lojas
         dispatcher.register(
             Commands.literal("lojas")
+                .requires(ShopCommand::canTeleport)
                 .executes(ShopCommand::listShops)
         );
+    }
+
+    // ── Permission checks ──
+
+    private static boolean canCreate(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try { return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.SHOP_CREATE); }
+        catch (Exception e) { return true; }
+    }
+
+    private static boolean canTeleport(CommandSourceStack src) {
+        if (!src.isPlayer()) return true;
+        try { return PermissionAPI.getPermission(src.getPlayerOrException(), JBalancePermissions.SHOP_TELEPORT); }
+        catch (Exception e) { return true; }
     }
 
     // ── /setloja ──
