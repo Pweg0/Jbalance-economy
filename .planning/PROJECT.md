@@ -19,10 +19,12 @@ Players must be able to earn, spend, and transfer virtual currency reliably — 
 - ✓ /eco balance to check own balance — Phase 2
 - ✓ /eco top ranking of top 10 richest players — Phase 2
 - ✓ Admin commands: /ecoadmin give, take, set — Phase 2
+- ✓ Earnings by mobs killed (configurable per mob type, spawner exclusion) — Phase 3
+- ✓ Earnings by playtime milestones (1h, 2h, 5h, etc — configurable, AFK detection) — Phase 3
+- ✓ Persistent milestone tracking that survives disconnects/restarts — Phase 3
+- ✓ Batched kill notifications (60s interval, PT-BR) — Phase 3
 
 ### Active
-- [ ] Payload system: earnings by playtime milestones (1h, 2h, 5h, etc — configurable)
-- [ ] Payload system: earnings by mobs killed (configurable per mob type)
 - [ ] Vote rewards via Votifier/NuVotifier listener integration
 - [ ] API for Cobblemon Arena PvP integration (give/take coins, betting, earnings ranking)
 - [ ] Player shop system (details TBD in implementation phase)
@@ -75,4 +77,4 @@ Players must be able to earn, spend, and transfer virtual currency reliably — 
 | Java (not Kotlin) | Maximum NeoForge compatibility, standard tooling | — Pending |
 
 ---
-*Last updated: 2026-03-19 after Phase 2 completion — Currency (balance, pay, top, admin commands)*
+*Last updated: 2026-03-19 after Phase 3 completion — Earnings (mob kills, playtime milestones, AFK detection, persistent tracking)*
