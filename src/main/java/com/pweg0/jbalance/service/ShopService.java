@@ -3,6 +3,8 @@ package com.pweg0.jbalance.service;
 import com.pweg0.jbalance.JBalance;
 import com.pweg0.jbalance.data.db.ShopRepository;
 
+import com.pweg0.jbalance.config.JBalanceConfig;
+
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
@@ -18,8 +20,10 @@ public class ShopService {
     private final ShopRepository repo;
     private final ExecutorService dbExecutor;
 
-    /** 3% tax on all sales */
-    public static final double TAX_RATE = 0.03;
+    /** Tax rate read from TOML config. Call on game thread only. */
+    public static double getTaxRate() {
+        return JBalanceConfig.SHOP_TAX_PERCENT.get() / 100.0;
+    }
 
     public ShopService(ShopRepository repo, ExecutorService dbExecutor) {
         this.repo = repo;
@@ -93,12 +97,14 @@ public class ShopService {
 
     // ── Tax calculation ──
 
-    /** Calculate tax amount from a sale price. */
+    /** Calculate tax amount from a sale price. Must be called on game thread. */
     public static long calculateTax(long salePrice) {
-        return Math.max(1, (long) Math.ceil(salePrice * TAX_RATE));
+        double rate = getTaxRate();
+        if (rate <= 0) return 0;
+        return Math.max(1, (long) Math.ceil(salePrice * rate));
     }
 
-    /** Amount the seller actually receives after tax. */
+    /** Amount the seller actually receives after tax. Must be called on game thread. */
     public static long sellerReceives(long salePrice) {
         return salePrice - calculateTax(salePrice);
     }

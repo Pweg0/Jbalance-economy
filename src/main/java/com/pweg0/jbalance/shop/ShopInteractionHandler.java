@@ -1,6 +1,7 @@
 package com.pweg0.jbalance.shop;
 
 import com.pweg0.jbalance.JBalance;
+import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.ShopRepository;
 import com.pweg0.jbalance.service.EconomyService;
 import com.pweg0.jbalance.service.ShopService;
@@ -70,6 +71,16 @@ public class ShopInteractionHandler {
 
         switch (session.phase()) {
             case WAITING_DISPLAY_BLOCK -> {
+                // Check blacklist
+                String blockId = BuiltInRegistries.BLOCK.getKey(level.getBlockState(pos).getBlock()).toString();
+                java.util.List<? extends String> blacklist = JBalanceConfig.SHOP_DISPLAY_BLACKLIST.get();
+                if (blacklist.contains(blockId)) {
+                    player.sendSystemMessage(Component.literal(
+                        "\u00a76[JBalance] \u00a7cEste bloco nao pode ser usado como mostruario!"
+                    ));
+                    event.setCanceled(true);
+                    return;
+                }
                 // Record display block position
                 ShopSetupSession.update(uuid, session.withDisplayBlock(pos));
                 player.sendSystemMessage(Component.literal(

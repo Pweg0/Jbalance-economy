@@ -31,6 +31,10 @@ public class JBalanceConfig {
     public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_EARNINGS;
     public static final ModConfigSpec.BooleanValue WEBHOOK_LOG_BALANCE;
 
+    // Shop section
+    public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> SHOP_DISPLAY_BLACKLIST;
+    public static final ModConfigSpec.LongValue SHOP_TAX_PERCENT;
+
     // Earnings - Mob Kills section
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> MOB_KILL_REWARDS;
     public static final ModConfigSpec.LongValue KILL_NOTIFICATION_INTERVAL;
@@ -79,6 +83,18 @@ public class JBalanceConfig {
                                        .define("log_earnings", true);
         WEBHOOK_LOG_BALANCE = builder.comment("Log first join (new player balance)")
                                       .define("log_balance", true);
+        builder.pop();
+
+        builder.comment("JBalance Shop Settings").push("shop");
+        SHOP_DISPLAY_BLACKLIST = builder
+            .comment("Blocks that CANNOT be used as shop display stands. Format: \"minecraft:block_id\"")
+            .defineListAllowEmpty("display_blacklist",
+                java.util.List.of("minecraft:bedrock", "minecraft:command_block",
+                    "minecraft:chain_command_block", "minecraft:repeating_command_block",
+                    "minecraft:barrier", "minecraft:structure_block", "minecraft:jigsaw"),
+                e -> e instanceof String s && s.matches("[a-z0-9_.-]+:[a-z0-9_/.-]+"));
+        SHOP_TAX_PERCENT = builder.comment("Tax percentage on shop sales (e.g. 3 = 3%)")
+                                   .defineInRange("tax_percent", 3L, 0L, 100L);
         builder.pop();
 
         builder.comment("JBalance Earnings Settings").push("earnings");
