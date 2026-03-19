@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-stopped_at: Phase 3 context gathered
-last_updated: "2026-03-19T16:37:55.527Z"
+stopped_at: Completed 03-earnings-01-PLAN.md
+last_updated: "2026-03-19T17:18:00.030Z"
 progress:
   total_phases: 3
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
 ---
 
 # Project State
@@ -19,12 +19,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-19)
 
 **Core value:** Players must be able to earn, spend, and transfer virtual currency reliably — the economy is the backbone that every other feature depends on.
-**Current focus:** Phase 02 — currency
+**Current focus:** Phase 03 — earnings
 
 ## Current Position
 
-Phase: 02 (currency) — EXECUTING
-Plan: 2 of 3
+Phase: 03 (earnings) — EXECUTING
+Plan: 1 of 2
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Plan: 2 of 3
 | Phase 02-currency P01 | 9 | 2 tasks | 7 files |
 | Phase 02-currency P02 | 3 | 2 tasks | 1 files |
 | Phase 02-currency P03 | 4 | 1 tasks | 1 files |
+| Phase 03-earnings P01 | 3 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,8 @@ Recent decisions affecting current work:
 - [Phase 02-currency]: StringArgumentType.word() used for /ecoadmin player arg (not EntityArgument) to support offline player name resolution via findByDisplayName
 - [Phase 02-currency]: Tab-complete for /ecoadmin suggests online players only via SharedSuggestionProvider; offline resolution still works when name typed manually
 - [Phase 02-currency]: /ecoadmin set uses longArg(0) to allow zeroing a balance; give and take use longArg(1) minimum
+- [Phase 03-earnings]: FinalizeSpawnEvent is top-level class in NeoForge 1.21.1 (not MobSpawnEvent.FinalizeSpawn inner class as in 1.20.6)
+- [Phase 03-earnings]: Kill accumulator uses ConcurrentHashMap.merge() per player UUID, flushed via ServerTickEvent.Post tick counter (intervalSeconds * 20 ticks)
 
 ### Pending Todos
 
@@ -88,6 +91,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-19T16:37:55.521Z
-Stopped at: Phase 3 context gathered
-Resume file: .planning/phases/03-earnings/03-CONTEXT.md
+Last session: 2026-03-19T17:18:00.026Z
+Stopped at: Completed 03-earnings-01-PLAN.md
+Resume file: None

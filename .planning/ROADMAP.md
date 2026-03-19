@@ -62,7 +62,7 @@ Plans:
   3. When a player's total playtime crosses a configured milestone (e.g. 1h, 2h, 5h), they receive the milestone reward exactly once and are notified in chat
   4. If a player disconnects mid-session, their playtime progress toward the next milestone is preserved and they continue accumulating toward it on next login
   5. An admin can change any mob reward or milestone threshold in TOML and the updated values apply on next server reload
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 - [ ] 03-01-PLAN.md — Mob kill earnings: TOML config for mob rewards, EarningsEventHandler with LivingDeathEvent, spawner tagging, kill accumulator, batched notifications
@@ -78,4 +78,4 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-03-19 |
 | 2. Currency | 3/3 | Complete   | 2026-03-19 |
-| 3. Earnings | 0/2 | Not started | - |
+| 3. Earnings | 1/2 | In Progress|  |

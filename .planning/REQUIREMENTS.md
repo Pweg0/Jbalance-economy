@@ -22,11 +22,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Earnings
 
-- [ ] **EARN-01**: Player earns configurable coins per mob killed
-- [ ] **EARN-02**: Different mob types can have different reward values (configured in TOML)
+- [x] **EARN-01**: Player earns configurable coins per mob killed
+- [x] **EARN-02**: Different mob types can have different reward values (configured in TOML)
 - [ ] **EARN-03**: Player earns coins upon reaching playtime milestones (1h, 2h, 5h, etc — configurable)
 - [ ] **EARN-04**: Playtime milestones are per-player and persist across sessions
-- [ ] **EARN-05**: Player receives chat message when earning coins from any source
+- [x] **EARN-05**: Player receives chat message when earning coins from any source
 
 ### Land
 
@@ -90,11 +90,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CURR-08 | Phase 1 | Complete |
 | CURR-09 | Phase 1 | Complete |
 | CURR-10 | Phase 1 | Complete |
-| EARN-01 | Phase 3 | Pending |
-| EARN-02 | Phase 3 | Pending |
+| EARN-01 | Phase 3 | Complete |
+| EARN-02 | Phase 3 | Complete |
 | EARN-03 | Phase 3 | Pending |
 | EARN-04 | Phase 3 | Pending |
-| EARN-05 | Phase 3 | Pending |
+| EARN-05 | Phase 3 | Complete |
 | LAND-01 | Phase 4 | Pending |
 | LAND-02 | Phase 4 | Pending |
 | LAND-03 | Phase 4 | Pending |
