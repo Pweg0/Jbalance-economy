@@ -180,7 +180,8 @@ public class ShopInteractionHandler {
     }
 
     /**
-     * Shows clickable buy/sell options in chat with stock/inventory info.
+     * Shows clickable buy/sell options with quantity buttons.
+     * All verifications: buyer balance, seller balance, stock, inventory space.
      */
     private static void showTradeOptions(ServerPlayer player, ShopRepository.ShopItemData shopItem, ServerLevel level) {
         String itemId = shopItem.itemId();
@@ -206,79 +207,158 @@ public class ShopInteractionHandler {
         }
 
         player.sendSystemMessage(Component.literal(
-            "\u00a76[JBalance] \u00a77--- \u00a76" + itemName + " \u00a77---"
+            "\u00a76[JBalance] \u00a77========= \u00a76" + itemName + " \u00a77========="
         ));
 
-        // Buy option (if shop sells)
+        // ── BUY section ──
         if (shopItem.sellQty() > 0 && shopItem.sellPrice() > 0) {
-            if (stock > 0) {
-                int maxBuy = stock;
-                // Store pending transaction
-                ShopPendingTransaction.set(player.getUUID(), new ShopPendingTransaction.Pending(
-                    ShopPendingTransaction.Type.BUY, shopItem.id(), shopItem.shopUuid(),
-                    itemId, maxBuy, shopItem.sellPrice(), 0
-                ));
-
-                Component buyBtn = Component.literal("\u00a7a\u00a7l[COMPRAR]").withStyle(Style.EMPTY
-                    .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/jshop confirmar "))
-                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                        Component.literal("Clique e digite a quantidade (1-" + maxBuy + ")")))
-                );
-
+            if (stock <= 0) {
                 player.sendSystemMessage(Component.literal(
-                    "\u00a77Preco: \u00a76" + CurrencyFormatter.formatBalance(shopItem.sellPrice()) +
-                    " \u00a77cada | Estoque: \u00a76" + stock + " \u00a77| "
-                ).append(buyBtn));
-            } else {
-                player.sendSystemMessage(Component.literal(
-                    "\u00a7cSem estoque para compra!"
+                    "\u00a77Comprar: \u00a7cSem estoque!"
                 ));
                 notifyOwnerOutOfStock(player.getServer(), shopItem.shopUuid(), shopItem);
                 ShopDisplayManager.getInstance().removeDisplay(level, shopItem.id());
                 ShopService.getInstance().getRepo().setShopItemActive(shopItem.id(), false);
+            } else {
+                // Check buyer balance to determine max affordable
+                final int fStock = stock;
+                EconomyService.getInstance().getBalance(player.getUUID())
+                    .whenComplete((buyerBal, exBal) -> player.getServer().execute(() -> {
+                        long bal = (exBal != null || buyerBal == null) ? 0 : buyerBal;
+                        int maxByMoney = (int) (bal / shopItem.sellPrice());
+                        int maxBuy = Math.min(fStock, maxByMoney);
+
+                        if (maxBuy <= 0) {
+                            player.sendSystemMessage(Component.literal(
+                                "\u00a77Comprar: \u00a76" + CurrencyFormatter.formatBalance(shopItem.sellPrice()) +
+                                " \u00a77cada | Estoque: \u00a76" + fStock +
+                                " \u00a77| \u00a7cSaldo insuficiente!"
+                            ));
+                            return;
+                        }
+
+                        player.sendSystemMessage(Component.literal(
+                            "\u00a77Comprar: \u00a76" + CurrencyFormatter.formatBalance(shopItem.sellPrice()) +
+                            " \u00a77cada | Estoque: \u00a76" + fStock +
+                            " \u00a77| Seu saldo: \u00a76" + CurrencyFormatter.formatBalance(bal)
+                        ));
+
+                        // Build quantity buttons
+                        Component buyLine = Component.literal("\u00a7a\u00a7lCOMPRAR: ");
+                        int[] qtys = {1, 5, 10, 32, 64};
+                        for (int q : qtys) {
+                            if (q > maxBuy) continue;
+                            long totalCost = shopItem.sellPrice() * q;
+                            buyLine = buyLine.copy().append(
+                                Component.literal("\u00a7a[" + q + "] ").withStyle(Style.EMPTY
+                                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                                        "/jshop comprar " + q))
+                                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                        Component.literal(q + "x " + itemName + "\nCusto: " +
+                                            CurrencyFormatter.formatBalance(totalCost)))))
+                            );
+                        }
+                        // Add max button if not already in the list
+                        if (maxBuy > 1 && maxBuy != 5 && maxBuy != 10 && maxBuy != 32 && maxBuy != 64) {
+                            long totalCost = shopItem.sellPrice() * maxBuy;
+                            buyLine = buyLine.copy().append(
+                                Component.literal("\u00a7a[MAX:" + maxBuy + "] ").withStyle(Style.EMPTY
+                                    .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                                        "/jshop comprar " + maxBuy))
+                                    .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                        Component.literal(maxBuy + "x " + itemName + "\nCusto: " +
+                                            CurrencyFormatter.formatBalance(totalCost)))))
+                            );
+                        }
+
+                        // Store pending transaction for /jshop confirmar
+                        ShopPendingTransaction.set(player.getUUID(), new ShopPendingTransaction.Pending(
+                            ShopPendingTransaction.Type.BUY, shopItem.id(), shopItem.shopUuid(),
+                            itemId, maxBuy, shopItem.sellPrice(), 0
+                        ));
+
+                        player.sendSystemMessage(buyLine);
+                    }));
             }
         }
 
-        // Sell option (if shop buys)
+        // ── SELL section ──
         if (shopItem.buyQty() > 0 && shopItem.buyPrice() > 0) {
-            // Check how much the shop owner can afford
             final int fPlayerHas = playerHas;
-            final int fStock = stock;
             EconomyService.getInstance().getBalance(shopItem.shopUuid())
                 .whenComplete((ownerBal, ex2) -> player.getServer().execute(() -> {
                     long bal = (ex2 != null || ownerBal == null) ? 0 : ownerBal;
                     int maxByMoney = (int) (bal / shopItem.buyPrice());
                     int maxSell = Math.min(fPlayerHas, maxByMoney);
 
+                    if (fPlayerHas == 0) {
+                        player.sendSystemMessage(Component.literal(
+                            "\u00a77Vender: \u00a7cVoce nao tem este item!"
+                        ));
+                        return;
+                    }
+                    if (maxByMoney == 0) {
+                        player.sendSystemMessage(Component.literal(
+                            "\u00a77Vender: \u00a76" + CurrencyFormatter.formatBalance(shopItem.buyPrice()) +
+                            " \u00a77cada | \u00a7cDono da loja sem saldo!"
+                        ));
+                        return;
+                    }
                     if (maxSell <= 0) {
                         player.sendSystemMessage(Component.literal(
-                            "\u00a7cNao e possivel vender: " +
-                            (fPlayerHas == 0 ? "voce nao tem este item" : "dono da loja sem saldo")
+                            "\u00a77Vender: \u00a7cNao e possivel vender no momento."
                         ));
                         return;
                     }
 
+                    long tax1 = ShopService.calculateTax(shopItem.buyPrice());
+                    long youGet1 = ShopService.sellerReceives(shopItem.buyPrice());
+
+                    player.sendSystemMessage(Component.literal(
+                        "\u00a77Vender: \u00a76" + CurrencyFormatter.formatBalance(shopItem.buyPrice()) +
+                        " \u00a77cada (voce recebe \u00a76" + CurrencyFormatter.formatBalance(youGet1) +
+                        "\u00a77, taxa 3%) | Voce tem: \u00a76" + fPlayerHas +
+                        " \u00a77| Dono pode comprar: \u00a76" + maxByMoney
+                    ));
+
+                    // Build quantity buttons
+                    Component sellLine = Component.literal("\u00a7e\u00a7lVENDER: ");
+                    int[] qtys = {1, 5, 10, 32, 64};
+                    for (int q : qtys) {
+                        if (q > maxSell) continue;
+                        long totalEarn = ShopService.sellerReceives(shopItem.buyPrice() * q);
+                        sellLine = sellLine.copy().append(
+                            Component.literal("\u00a7e[" + q + "] ").withStyle(Style.EMPTY
+                                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                                    "/jshop vender2 " + q))
+                                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                    Component.literal(q + "x " + itemName + "\nVoce recebe: " +
+                                        CurrencyFormatter.formatBalance(totalEarn) + " (taxa 3%)"))))
+                        );
+                    }
+                    if (maxSell > 1 && maxSell != 5 && maxSell != 10 && maxSell != 32 && maxSell != 64) {
+                        long totalEarn = ShopService.sellerReceives(shopItem.buyPrice() * maxSell);
+                        sellLine = sellLine.copy().append(
+                            Component.literal("\u00a7e[MAX:" + maxSell + "] ").withStyle(Style.EMPTY
+                                .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                                    "/jshop vender2 " + maxSell))
+                                .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
+                                    Component.literal(maxSell + "x " + itemName + "\nVoce recebe: " +
+                                        CurrencyFormatter.formatBalance(totalEarn) + " (taxa 3%)"))))
+                        );
+                    }
+
+                    // Store pending — note: if buy buttons were also shown,
+                    // this overwrites. Last section shown wins the pending slot.
+                    // To handle both, we check which the user actually clicks.
                     ShopPendingTransaction.set(player.getUUID(), new ShopPendingTransaction.Pending(
                         ShopPendingTransaction.Type.SELL, shopItem.id(), shopItem.shopUuid(),
                         itemId, maxSell, shopItem.buyPrice(), bal
                     ));
 
-                    Component sellBtn = Component.literal("\u00a7e\u00a7l[VENDER]").withStyle(Style.EMPTY
-                        .withClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, "/jshop confirmar "))
-                        .withHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT,
-                            Component.literal("Clique e digite a quantidade (1-" + maxSell + ")")))
-                    );
-
-                    player.sendSystemMessage(Component.literal(
-                        "\u00a77Compra por: \u00a76" + CurrencyFormatter.formatBalance(shopItem.buyPrice()) +
-                        " \u00a77cada | Voce tem: \u00a76" + fPlayerHas + " \u00a77| Max: \u00a76" + maxSell + " \u00a77| "
-                    ).append(sellBtn));
+                    player.sendSystemMessage(sellLine);
                 }));
         }
-
-        player.sendSystemMessage(Component.literal(
-            "\u00a77Use \u00a76/jshop confirmar <qtd> \u00a77para confirmar."
-        ));
     }
 
     private static void handleRemoveMode(ServerPlayer player, BlockPos pos, String dimension, ServerLevel level) {

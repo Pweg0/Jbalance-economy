@@ -19,21 +19,32 @@ public class ShopPendingTransaction {
     public record Pending(Type type, int shopItemId, UUID shopOwner, String itemId,
                           int maxQty, long pricePerUnit, long ownerBalance) {}
 
-    private static final ConcurrentHashMap<UUID, Pending> pending = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, Pending> pendingBuy = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<UUID, Pending> pendingSell = new ConcurrentHashMap<>();
 
     public static void set(UUID player, Pending tx) {
-        pending.put(player, tx);
+        if (tx.type() == Type.BUY) pendingBuy.put(player, tx);
+        else pendingSell.put(player, tx);
     }
 
-    public static Pending get(UUID player) {
-        return pending.get(player);
+    public static Pending getBuy(UUID player) {
+        return pendingBuy.get(player);
     }
 
-    public static Pending remove(UUID player) {
-        return pending.remove(player);
+    public static Pending getSell(UUID player) {
+        return pendingSell.get(player);
     }
 
-    public static boolean has(UUID player) {
-        return pending.containsKey(player);
+    public static Pending removeBuy(UUID player) {
+        return pendingBuy.remove(player);
+    }
+
+    public static Pending removeSell(UUID player) {
+        return pendingSell.remove(player);
+    }
+
+    public static void clearAll(UUID player) {
+        pendingBuy.remove(player);
+        pendingSell.remove(player);
     }
 }

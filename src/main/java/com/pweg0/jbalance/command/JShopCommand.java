@@ -55,9 +55,12 @@ public class JShopCommand {
                     .executes(JShopCommand::remove))
                 .then(Commands.literal("cancelar")
                     .executes(JShopCommand::cancel))
-                .then(Commands.literal("confirmar")
+                .then(Commands.literal("comprar")
                     .then(Commands.argument("qtd", IntegerArgumentType.integer(1))
-                        .executes(JShopCommand::confirm)))
+                        .executes(ctx -> confirmTyped(ctx, ShopPendingTransaction.Type.BUY))))
+                .then(Commands.literal("vender2")
+                    .then(Commands.argument("qtd", IntegerArgumentType.integer(1))
+                        .executes(ctx -> confirmTyped(ctx, ShopPendingTransaction.Type.SELL))))
                 .then(Commands.literal("help")
                     .executes(JShopCommand::help))
         );
@@ -179,15 +182,18 @@ public class JShopCommand {
         return Command.SINGLE_SUCCESS;
     }
 
-    // ── /jshop confirmar <qtd> ──
+    // ── /jshop comprar <qtd> | /jshop vender2 <qtd> ──
 
-    private static int confirm(CommandContext<CommandSourceStack> ctx)
+    private static int confirmTyped(CommandContext<CommandSourceStack> ctx, ShopPendingTransaction.Type type)
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
         ServerPlayer player = src.getPlayerOrException();
         int qty = IntegerArgumentType.getInteger(ctx, "qtd");
 
-        ShopPendingTransaction.Pending tx = ShopPendingTransaction.remove(player.getUUID());
+        ShopPendingTransaction.Pending tx = (type == ShopPendingTransaction.Type.BUY)
+            ? ShopPendingTransaction.removeBuy(player.getUUID())
+            : ShopPendingTransaction.removeSell(player.getUUID());
+
         if (tx == null) {
             src.sendFailure(Component.literal(
                 "\u00a76[JBalance] \u00a7cNenhuma transacao pendente. Interaja com um mostruario primeiro."
@@ -202,7 +208,7 @@ public class JShopCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        if (tx.type() == ShopPendingTransaction.Type.BUY) {
+        if (type == ShopPendingTransaction.Type.BUY) {
             processConfirmBuy(player, tx, qty);
         } else {
             processConfirmSell(player, tx, qty);
