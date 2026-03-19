@@ -41,7 +41,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Infrastructure
 
-- [ ] **INFR-01**: Mod loads on NeoForge 1.21.1 dedicated server without errors
+- [x] **INFR-01**: Mod loads on NeoForge 1.21.1 dedicated server without errors
 - [ ] **INFR-02**: All monetary transactions are atomic (no double-spend via race conditions)
 - [ ] **INFR-03**: Database operations run async (no server tick blocking)
 - [ ] **INFR-04**: TOML config with hot-reload support for value changes
@@ -103,7 +103,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | LAND-06 | Phase 4 | Pending |
 | LAND-07 | Phase 4 | Pending |
 | LAND-08 | Phase 4 | Pending |
-| INFR-01 | Phase 1 | Pending |
+| INFR-01 | Phase 1 | Complete |
 | INFR-02 | Phase 1 | Pending |
 | INFR-03 | Phase 1 | Pending |
 | INFR-04 | Phase 1 | Pending |
