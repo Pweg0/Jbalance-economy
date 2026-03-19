@@ -2,7 +2,7 @@
 
 ## Overview
 
-JBalance is built in four phases that reflect the natural dependency order of an economy mod. The database and project foundation must come first — every other feature sits on top of it. Currency commands follow immediately after, as they are the visible surface players and admins interact with daily. Earning mechanics give players a way to accumulate currency without manual admin intervention. Finally, the admin land/terrain system delivers the most complex feature — property sales, protection, and rent — which only makes sense once an active economy already exists.
+JBalance is built in three phases that reflect the natural dependency order of an economy mod. The database and project foundation must come first — every other feature sits on top of it. Currency commands follow immediately after, as they are the visible surface players and admins interact with daily. Earning mechanics give players a way to accumulate currency without manual admin intervention.
 
 ## Phases
 
@@ -15,7 +15,6 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 1: Foundation** - NeoForge project scaffold, dual-database layer, TOML config, and project infrastructure (completed 2026-03-19)
 - [ ] **Phase 2: Currency** - Full player and admin currency command suite with balance persistence
 - [ ] **Phase 3: Earnings** - Passive currency earning from mob kills and playtime milestones
-- [ ] **Phase 4: Land** - Admin terrain zone definition, property sales, protection, and monthly rent
 
 ## Phase Details
 
@@ -32,9 +31,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans:** 3/3 plans complete
 
 Plans:
-- [ ] 01-01-PLAN.md — Project scaffold: ModDevGradle 2.0.x, NeoForge 21.1.220, jarJar deps, @Mod entry point
-- [ ] 01-02-PLAN.md — TOML config: ModConfigSpec SERVER type, currency formatter, hot-reload wiring
-- [ ] 01-03-PLAN.md — Database layer: HikariCP dual-DB, BalanceRepository, EconomyService, player first-join handler
+- [x] 01-01-PLAN.md — Project scaffold: ModDevGradle 2.0.x, NeoForge 21.1.220, jarJar deps, @Mod entry point
+- [x] 01-02-PLAN.md — TOML config: ModConfigSpec SERVER type, currency formatter, hot-reload wiring
+- [x] 01-03-PLAN.md — Database layer: HikariCP dual-DB, BalanceRepository, EconomyService, player first-join handler
 
 ### Phase 2: Currency
 **Goal**: Players can check balances, send coins to each other, and view the wealth rankings; admins can give, take, and set any player's balance from the command line.
@@ -46,12 +45,12 @@ Plans:
   3. A player can type `/eco pay <player> <amount>` and the coins move atomically — the sender's balance decreases and the receiver's increases with no possibility of a double-spend
   4. A player can type `/eco top` and see the top 10 richest players ranked by balance
   5. An admin (OP level 4) can give, take, or set any player's balance via `/ecoadmin give|take|set <player> <amount>` and the change is immediately reflected
-**Plans**: TBD
+**Plans:** 3 plans
 
 Plans:
-- [ ] 02-01: EconomyService — atomic balance CRUD and transfer with per-player in-flight locks
-- [ ] 02-02: Player commands — /eco balance, /eco pay, /eco top with PT-BR messages
-- [ ] 02-03: Admin commands — /ecoadmin give, take, set with OP level 4 permission gating
+- [ ] 02-01-PLAN.md — Service layer extensions: BalanceRepository new methods, EconomyService wrappers, config values, CommandRegistrar skeleton
+- [ ] 02-02-PLAN.md — Player commands: /eco balance, /eco pay, /eco top with PT-BR messages, cache, and guards
+- [ ] 02-03-PLAN.md — Admin commands: /ecoadmin give, take, set with offline player resolution and OP 4 gating
 
 ### Phase 3: Earnings
 **Goal**: Players passively earn coins by killing mobs and reaching playtime milestones, with configurable reward rates and persistent milestone tracking that survives disconnects.
@@ -69,32 +68,14 @@ Plans:
 - [ ] 03-01: Mob kill earning — LivingDeathEvent handler, per-mob-type reward lookup, EconomyService credit
 - [ ] 03-02: Playtime milestone tracking — in-memory counter with login/logout events, DB flush at milestones and logout
 
-### Phase 4: Land
-**Goal**: Admins can define geographic terrain zones, mark them for sale, and players can purchase them; terrain owners get building rights and owe configurable monthly rent, all persisted across restarts.
-**Depends on**: Phase 2
-**Requirements**: LAND-01, LAND-02, LAND-03, LAND-04, LAND-05, LAND-06, LAND-07, LAND-08
-**Success Criteria** (what must be TRUE):
-  1. An admin can select two opposite corners of a 3D zone using the designated item and confirm the selection, then mark it for sale with `/ecoadmin venda <price>`
-  2. A terrain marked for sale is protected — non-owners receive a PT-BR denial message and cannot place or break blocks inside it
-  3. A player can purchase an available terrain and the price is atomically deducted from their balance; they immediately gain build/break rights inside the zone
-  4. A terrain owner who fails to pay monthly rent loses ownership and the terrain reverts to for-sale or admin-locked status
-  5. An admin can run a command to list all terrain zones with their owner, price, and rent status
-  6. All terrain data (zone bounds, owner, status) persists across server restarts
-**Plans**: TBD
-
-Plans:
-- [ ] 04-01: Terrain data model — DB schema for zones, corner selection tool, TerrainService
-- [ ] 04-02: Protection and sale system — block event cancellation, /ecoadmin venda, purchase command
-- [ ] 04-03: Rent scheduler — monthly rent deduction, ownership revocation, admin terrain list command
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4
+Phases execute in numeric order: 1 → 2 → 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation | 3/3 | Complete   | 2026-03-19 |
-| 2. Currency | 0/3 | Not started | - |
+| 2. Currency | 0/3 | In progress | - |
 | 3. Earnings | 0/2 | Not started | - |
-| 4. Land | 0/3 | Not started | - |
