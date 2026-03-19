@@ -1,6 +1,7 @@
 package com.pweg0.jbalance;
 
 import com.mojang.logging.LogUtils;
+import com.pweg0.jbalance.command.CommandRegistrar;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.DatabaseManager;
 import com.pweg0.jbalance.event.PlayerEventHandler;
@@ -36,6 +37,7 @@ public class JBalance {
         NeoForge.EVENT_BUS.addListener(PlayerEventHandler::onPlayerLoggedIn);
         NeoForge.EVENT_BUS.addListener(JBalance::onServerAboutToStart);
         NeoForge.EVENT_BUS.addListener(JBalance::onServerStopping);
+        NeoForge.EVENT_BUS.addListener(CommandRegistrar::onRegisterCommands);
     }
 
     private void onConfigReloading(ModConfigEvent.Reloading event) {

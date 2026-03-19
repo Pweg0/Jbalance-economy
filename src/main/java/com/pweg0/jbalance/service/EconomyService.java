@@ -4,6 +4,7 @@ import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.BalanceRepository;
 import com.pweg0.jbalance.data.db.DatabaseManager;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -102,6 +103,38 @@ public class EconomyService {
             () -> repo.initPlayerIfAbsent(uuid, displayName, startingBalance),
             DB_EXECUTOR
         );
+    }
+
+    /**
+     * Asynchronously sets a player's balance to an exact value.
+     * Used by /ecoadmin set command.
+     */
+    public CompletableFuture<Boolean> setBalance(UUID playerId, long newBalance) {
+        return CompletableFuture.supplyAsync(() -> repo.setBalance(playerId, newBalance), DB_EXECUTOR);
+    }
+
+    /**
+     * Asynchronously retrieves the top N players by balance.
+     * Used by /eco top command.
+     */
+    public CompletableFuture<List<BalanceRepository.TopEntry>> getTopBalances(int limit) {
+        return CompletableFuture.supplyAsync(() -> repo.getTopBalances(limit), DB_EXECUTOR);
+    }
+
+    /**
+     * Asynchronously retrieves a player's 1-based rank by balance.
+     * Used by /eco top to show caller's position when not in top N.
+     */
+    public CompletableFuture<Integer> getPlayerRank(UUID playerId) {
+        return CompletableFuture.supplyAsync(() -> repo.getPlayerRank(playerId), DB_EXECUTOR);
+    }
+
+    /**
+     * Asynchronously looks up a player record by display name.
+     * Used by /ecoadmin commands to resolve offline players.
+     */
+    public CompletableFuture<BalanceRepository.PlayerRecord> findByDisplayName(String name) {
+        return CompletableFuture.supplyAsync(() -> repo.findByDisplayName(name), DB_EXECUTOR);
     }
 
     /**

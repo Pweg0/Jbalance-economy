@@ -11,6 +11,10 @@ public class JBalanceConfig {
     public static final ModConfigSpec.LongValue STARTING_BALANCE;
     public static final ModConfigSpec.LongValue MIN_TRANSFER;
 
+    // Currency advanced
+    public static final ModConfigSpec.LongValue TOP_CACHE_SECONDS;
+    public static final ModConfigSpec.LongValue TRANSFER_COOLDOWN_SECONDS;
+
     // Database section
     public static final ModConfigSpec.BooleanValue USE_MYSQL;
     public static final ModConfigSpec.ConfigValue<String> DB_HOST;
@@ -29,6 +33,10 @@ public class JBalanceConfig {
                                   .defineInRange("starting_balance", 100L, 0L, Long.MAX_VALUE);
         MIN_TRANSFER = builder.comment("Minimum amount for /eco pay transfers")
                               .defineInRange("min_transfer", 1L, 1L, Long.MAX_VALUE);
+        TOP_CACHE_SECONDS = builder.comment("Seconds to cache /eco top results")
+                                   .defineInRange("top_cache_seconds", 60L, 1L, 3600L);
+        TRANSFER_COOLDOWN_SECONDS = builder.comment("Minimum seconds between /eco pay transfers for the same player")
+                                           .defineInRange("transfer_cooldown_seconds", 3L, 0L, 300L);
         builder.pop();
 
         builder.comment("JBalance Database Settings").push("database");
