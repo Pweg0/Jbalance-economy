@@ -4,7 +4,6 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.LongArgumentType;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.pweg0.jbalance.data.db.ShopRepository;
 import com.pweg0.jbalance.service.EconomyService;
@@ -44,19 +43,26 @@ public class JShopCommand {
         dispatcher.register(
             Commands.literal("jshop")
                 .executes(JShopCommand::help)
-                // Unified: /jshop criar venda:<qtd>:<preco> OR venda:<qtd>:<preco>:compra:<qtd>:<preco>
-                .then(Commands.literal("criar")
-                    .then(Commands.argument("config", StringArgumentType.greedyString())
-                        .executes(JShopCommand::createUnified)))
-                // Legacy separate commands still work
+                // /jshop venda 1 20
+                // /jshop venda 1 20 compra 1 5
                 .then(Commands.literal("venda")
-                    .then(Commands.argument("qtd", IntegerArgumentType.integer(1))
-                        .then(Commands.argument("preco", LongArgumentType.longArg(1))
-                            .executes(JShopCommand::sell))))
+                    .then(Commands.argument("vqtd", IntegerArgumentType.integer(1))
+                        .then(Commands.argument("vpreco", LongArgumentType.longArg(1))
+                            .executes(JShopCommand::sellOnly)
+                            .then(Commands.literal("compra")
+                                .then(Commands.argument("cqtd", IntegerArgumentType.integer(1))
+                                    .then(Commands.argument("cpreco", LongArgumentType.longArg(1))
+                                        .executes(JShopCommand::sellAndBuy)))))))
+                // /jshop compra 1 5
+                // /jshop compra 1 5 venda 1 20
                 .then(Commands.literal("compra")
-                    .then(Commands.argument("qtd", IntegerArgumentType.integer(1))
-                        .then(Commands.argument("preco", LongArgumentType.longArg(1))
-                            .executes(JShopCommand::buy))))
+                    .then(Commands.argument("cqtd", IntegerArgumentType.integer(1))
+                        .then(Commands.argument("cpreco", LongArgumentType.longArg(1))
+                            .executes(JShopCommand::buyOnly)
+                            .then(Commands.literal("venda")
+                                .then(Commands.argument("vqtd", IntegerArgumentType.integer(1))
+                                    .then(Commands.argument("vpreco", LongArgumentType.longArg(1))
+                                        .executes(JShopCommand::buyAndSell)))))))
                 .then(Commands.literal("remover")
                     .executes(JShopCommand::remove))
                 .then(Commands.literal("cancelar")
@@ -72,62 +78,38 @@ public class JShopCommand {
         );
     }
 
-    // ── /jshop criar venda:<qtd>:<preco>  or  venda:<qtd>:<preco>:compra:<qtd>:<preco> ──
+    // ── Command handlers — all delegate to startSetup ──
 
-    private static int createUnified(CommandContext<CommandSourceStack> ctx)
+    private static int sellOnly(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        return startSetup(ctx,
+            IntegerArgumentType.getInteger(ctx, "vqtd"), LongArgumentType.getLong(ctx, "vpreco"),
+            0, 0);
+    }
+
+    private static int buyOnly(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        return startSetup(ctx,
+            0, 0,
+            IntegerArgumentType.getInteger(ctx, "cqtd"), LongArgumentType.getLong(ctx, "cpreco"));
+    }
+
+    private static int sellAndBuy(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        return startSetup(ctx,
+            IntegerArgumentType.getInteger(ctx, "vqtd"), LongArgumentType.getLong(ctx, "vpreco"),
+            IntegerArgumentType.getInteger(ctx, "cqtd"), LongArgumentType.getLong(ctx, "cpreco"));
+    }
+
+    private static int buyAndSell(CommandContext<CommandSourceStack> ctx) throws com.mojang.brigadier.exceptions.CommandSyntaxException {
+        return startSetup(ctx,
+            IntegerArgumentType.getInteger(ctx, "vqtd"), LongArgumentType.getLong(ctx, "vpreco"),
+            IntegerArgumentType.getInteger(ctx, "cqtd"), LongArgumentType.getLong(ctx, "cpreco"));
+    }
+
+    private static int startSetup(CommandContext<CommandSourceStack> ctx,
+                                   int sellQty, long sellPrice, int buyQty, long buyPrice)
             throws com.mojang.brigadier.exceptions.CommandSyntaxException {
         CommandSourceStack src = ctx.getSource();
         ServerPlayer player = src.getPlayerOrException();
-        String config = StringArgumentType.getString(ctx, "config").trim().toLowerCase();
-
-        int sellQty = 0, buyQty = 0;
-        long sellPrice = 0, buyPrice = 0;
-
-        // Parse "venda:1:20" and/or "compra:1:5"
-        String[] parts = config.split("\\s+");
-        for (String part : parts) {
-            String[] tokens = part.split(":");
-            if (tokens.length == 3 && tokens[0].equals("venda")) {
-                try {
-                    sellQty = Integer.parseInt(tokens[1]);
-                    sellPrice = Long.parseLong(tokens[2]);
-                } catch (NumberFormatException e) {
-                    src.sendFailure(Component.literal(
-                        "\u00a76[JBalance] \u00a7cFormato invalido! Use: venda:quantidade:preco"
-                    ));
-                    return Command.SINGLE_SUCCESS;
-                }
-            } else if (tokens.length == 3 && tokens[0].equals("compra")) {
-                try {
-                    buyQty = Integer.parseInt(tokens[1]);
-                    buyPrice = Long.parseLong(tokens[2]);
-                } catch (NumberFormatException e) {
-                    src.sendFailure(Component.literal(
-                        "\u00a76[JBalance] \u00a7cFormato invalido! Use: compra:quantidade:preco"
-                    ));
-                    return Command.SINGLE_SUCCESS;
-                }
-            } else {
-                src.sendFailure(Component.literal(
-                    "\u00a76[JBalance] \u00a7cFormato invalido! Use:\n" +
-                    "\u00a76/jshop criar venda:1:20\n" +
-                    "\u00a76/jshop criar compra:1:5\n" +
-                    "\u00a76/jshop criar venda:1:20 compra:1:5"
-                ));
-                return Command.SINGLE_SUCCESS;
-            }
-        }
-
-        if (sellQty <= 0 && buyQty <= 0) {
-            src.sendFailure(Component.literal(
-                "\u00a76[JBalance] \u00a7cDefina pelo menos venda ou compra!"
-            ));
-            return Command.SINGLE_SUCCESS;
-        }
-
         UUID uuid = player.getUUID();
-        final int fSellQty = sellQty, fBuyQty = buyQty;
-        final long fSellPrice = sellPrice, fBuyPrice = buyPrice;
 
         ShopService svc = ShopService.getInstance();
         svc.getShop(uuid).whenComplete((shop, ex) -> src.getServer().execute(() -> {
@@ -145,102 +127,20 @@ public class JShopCommand {
                     ));
                     return;
                 }
-                ShopSetupSession.start(uuid, fSellQty, fSellPrice, fBuyQty, fBuyPrice);
+                ShopSetupSession.start(uuid, sellQty, sellPrice, buyQty, buyPrice);
 
                 StringBuilder msg = new StringBuilder("\u00a76[JBalance] \u00a7aCriando mostruario: ");
-                if (fSellQty > 0) {
-                    msg.append("\u00a77Venda: \u00a76").append(fSellQty).append("x por ")
-                       .append(CurrencyFormatter.formatBalance(fSellPrice));
+                if (sellQty > 0) {
+                    msg.append("\u00a77Venda: \u00a76").append(sellQty).append("x por ")
+                       .append(CurrencyFormatter.formatBalance(sellPrice));
                 }
-                if (fBuyQty > 0) {
-                    if (fSellQty > 0) msg.append(" \u00a77| ");
-                    msg.append("\u00a77Compra: \u00a76").append(fBuyQty).append("x por ")
-                       .append(CurrencyFormatter.formatBalance(fBuyPrice));
+                if (buyQty > 0) {
+                    if (sellQty > 0) msg.append(" \u00a77| ");
+                    msg.append("\u00a77Compra: \u00a76").append(buyQty).append("x por ")
+                       .append(CurrencyFormatter.formatBalance(buyPrice));
                 }
                 msg.append("\n\u00a76[JBalance] \u00a7eBata no bloco para expor o item.");
                 src.sendSuccess(() -> Component.literal(msg.toString()), false);
-            }));
-        }));
-        return Command.SINGLE_SUCCESS;
-    }
-
-    // ── /jshop venda <qtd> <preco> ──
-
-    private static int sell(CommandContext<CommandSourceStack> ctx)
-            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        CommandSourceStack src = ctx.getSource();
-        ServerPlayer player = src.getPlayerOrException();
-        UUID uuid = player.getUUID();
-        int qty = IntegerArgumentType.getInteger(ctx, "qtd");
-        long price = LongArgumentType.getLong(ctx, "preco");
-
-        // Check if player has a shop
-        ShopService svc = ShopService.getInstance();
-        svc.getShop(uuid).whenComplete((shop, ex) -> src.getServer().execute(() -> {
-            if (shop == null) {
-                src.sendFailure(Component.literal(
-                    "\u00a76[JBalance] \u00a7cVoce nao tem uma loja! Use \u00a76/setloja \u00a7cprimeiro."
-                ));
-                return;
-            }
-
-            // Check item limit
-            svc.countShopItems(uuid).whenComplete((count, ex2) -> src.getServer().execute(() -> {
-                int limit = getItemLimit(player);
-                if (count >= limit) {
-                    src.sendFailure(Component.literal(
-                        "\u00a76[JBalance] \u00a7cVoce atingiu o limite de \u00a76" + limit +
-                        " \u00a7citens na loja. Remova um item antes de adicionar outro."
-                    ));
-                    return;
-                }
-
-                // Start setup session
-                ShopSetupSession.start(uuid, qty, price, 0, 0);
-                src.sendSuccess(() -> Component.literal(
-                    "\u00a76[JBalance] \u00a7aVenda: \u00a76" + qty + "x \u00a7apor \u00a76" +
-                    CurrencyFormatter.formatBalance(price) +
-                    "\n\u00a76[JBalance] \u00a7eBata no bloco para expor o item."
-                ), false);
-            }));
-        }));
-        return Command.SINGLE_SUCCESS;
-    }
-
-    // ── /jshop compra <qtd> <preco> ──
-
-    private static int buy(CommandContext<CommandSourceStack> ctx)
-            throws com.mojang.brigadier.exceptions.CommandSyntaxException {
-        CommandSourceStack src = ctx.getSource();
-        ServerPlayer player = src.getPlayerOrException();
-        UUID uuid = player.getUUID();
-        int qty = IntegerArgumentType.getInteger(ctx, "qtd");
-        long price = LongArgumentType.getLong(ctx, "preco");
-
-        ShopService svc = ShopService.getInstance();
-        svc.getShop(uuid).whenComplete((shop, ex) -> src.getServer().execute(() -> {
-            if (shop == null) {
-                src.sendFailure(Component.literal(
-                    "\u00a76[JBalance] \u00a7cVoce nao tem uma loja! Use \u00a76/setloja \u00a7cprimeiro."
-                ));
-                return;
-            }
-
-            svc.countShopItems(uuid).whenComplete((count, ex2) -> src.getServer().execute(() -> {
-                int limit = getItemLimit(player);
-                if (count >= limit) {
-                    src.sendFailure(Component.literal(
-                        "\u00a76[JBalance] \u00a7cLimite de \u00a76" + limit + " \u00a7citens atingido."
-                    ));
-                    return;
-                }
-
-                ShopSetupSession.start(uuid, 0, 0, qty, price);
-                src.sendSuccess(() -> Component.literal(
-                    "\u00a76[JBalance] \u00a7aCompra: \u00a76" + qty + "x \u00a7apor \u00a76" +
-                    CurrencyFormatter.formatBalance(price) +
-                    "\n\u00a76[JBalance] \u00a7eBata no bloco para expor a ordem de compra."
-                ), false);
             }));
         }));
         return Command.SINGLE_SUCCESS;
@@ -516,9 +416,9 @@ public class JShopCommand {
     private static int help(CommandContext<CommandSourceStack> ctx) {
         CommandSourceStack src = ctx.getSource();
         src.sendSuccess(() -> Component.literal("\u00a76[JBalance] \u00a77Comandos da loja:"), false);
-        src.sendSuccess(() -> Component.literal("\u00a76/jshop criar venda:1:20 compra:1:5 \u00a77- Expor item (venda e/ou compra)"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/jshop venda <qtd> <preco> \u00a77- Expor item para venda"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/jshop compra <qtd> <preco> \u00a77- Criar ordem de compra"), false);
+        src.sendSuccess(() -> Component.literal("\u00a76/jshop venda 1 20 compra 1 5 \u00a77- Venda e compra juntos"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/jshop remover \u00a77- Remover item exposto"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/jshop cancelar \u00a77- Cancelar operacao"), false);
         src.sendSuccess(() -> Component.literal("\u00a76/setloja \u00a77- Criar sua loja"), false);
