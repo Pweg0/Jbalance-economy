@@ -48,6 +48,9 @@ public class JBalanceConfig {
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> MILESTONES;
     public static final ModConfigSpec.LongValue AFK_TIMEOUT_MINUTES;
 
+    // AFK section
+    public static final ModConfigSpec.LongValue AFK_KICK_MINUTES;
+
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
 
@@ -148,6 +151,11 @@ public class JBalanceConfig {
         builder.pop();
 
         builder.pop(); // earnings
+
+        builder.comment("AFK Settings").push("afk");
+        AFK_KICK_MINUTES = builder.comment("Minutes before kicking AFK players without jbalance.afk permission (0 = no kick)")
+                                   .defineInRange("kick_minutes", 20L, 0L, 1440L);
+        builder.pop(); // afk
 
         SPEC = builder.build();
     }

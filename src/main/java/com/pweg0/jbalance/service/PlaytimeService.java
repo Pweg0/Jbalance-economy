@@ -1,12 +1,14 @@
 package com.pweg0.jbalance.service;
 
 import com.pweg0.jbalance.JBalance;
+import com.pweg0.jbalance.command.JBalancePermissions;
 import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.PlaytimeRepository;
 import com.pweg0.jbalance.util.CurrencyFormatter;
 import com.pweg0.jbalance.util.DiscordWebhook;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.server.permission.PermissionAPI;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -47,6 +49,8 @@ public class PlaytimeService {
         double lastX, lastY, lastZ;
         float lastYRot, lastXRot;
         long ticksSinceLastMove;
+        /** True when player manually toggled /afk. */
+        boolean manualAfk;
 
         PlayerState(long activeTicks, Set<Long> claimedHours,
                     double x, double y, double z, float yRot, float xRot) {
@@ -58,6 +62,7 @@ public class PlaytimeService {
             this.lastYRot = yRot;
             this.lastXRot = xRot;
             this.ticksSinceLastMove = 0;
+            this.manualAfk = false;
         }
 
         /** Derived active seconds from accumulated non-AFK ticks. */
@@ -135,8 +140,27 @@ public class PlaytimeService {
     }
 
     /**
+     * Toggles the manual AFK flag for a player. Returns true if now AFK, false if back.
+     */
+    public boolean toggleAfk(UUID uuid) {
+        PlayerState state = playerStates.get(uuid);
+        if (state == null) return false;
+        state.manualAfk = !state.manualAfk;
+        return state.manualAfk;
+    }
+
+    /**
+     * Returns true if the player is currently in manual AFK mode.
+     */
+    public boolean isManualAfk(UUID uuid) {
+        PlayerState state = playerStates.get(uuid);
+        return state != null && state.manualAfk;
+    }
+
+    /**
      * Called every server tick per active player. Handles AFK detection, active time accumulation,
-     * and milestone checking. Must be called on the game thread.
+     * milestone checking, and AFK kick for players without permission.
+     * Must be called on the game thread.
      */
     public void onTick(ServerPlayer player) {
         UUID uuid = player.getUUID();
@@ -157,6 +181,14 @@ public class PlaytimeService {
             state.lastYRot = cyRot;
             state.lastXRot = cxRot;
             state.ticksSinceLastMove = 0;
+            // Auto-clear manual AFK on movement
+            if (state.manualAfk) {
+                state.manualAfk = false;
+                player.getServer().getPlayerList().broadcastSystemMessage(
+                    Component.literal("\u00a77* \u00a76" + player.getName().getString() + " \u00a77voltou do AFK."),
+                    false
+                );
+            }
         } else {
             state.ticksSinceLastMove++;
         }
@@ -164,7 +196,24 @@ public class PlaytimeService {
         // Read AFK timeout on game thread
         long afkTimeoutTicks = JBalanceConfig.AFK_TIMEOUT_MINUTES.get() * 60L * 20L;
 
-        // AFK check: if no movement for afkTimeoutTicks, do not accumulate
+        // AFK kick: if player has been idle and doesn't have jbalance.afk permission, kick them
+        long kickMinutes = JBalanceConfig.AFK_KICK_MINUTES.get();
+        if (kickMinutes > 0 && state.ticksSinceLastMove >= kickMinutes * 60L * 20L) {
+            boolean hasAfkPerm;
+            try {
+                hasAfkPerm = PermissionAPI.getPermission(player, JBalancePermissions.AFK);
+            } catch (Exception e) {
+                hasAfkPerm = false;
+            }
+            if (!hasAfkPerm) {
+                player.connection.disconnect(Component.literal(
+                    "\u00a76[JBalance] \u00a7cVoce foi kickado por ficar AFK por " + kickMinutes + " minutos."
+                ));
+                return;
+            }
+        }
+
+        // AFK check: if no movement for afkTimeoutTicks, do not accumulate playtime
         if (state.ticksSinceLastMove >= afkTimeoutTicks) {
             return;
         }

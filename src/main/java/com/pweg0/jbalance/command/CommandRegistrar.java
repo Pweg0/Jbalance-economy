@@ -18,5 +18,6 @@ public class CommandRegistrar {
         EcoAdminCommand.register(dispatcher);
         ShopCommand.register(dispatcher);
         JShopCommand.register(dispatcher);
+        AfkCommand.register(dispatcher);
     }
 }

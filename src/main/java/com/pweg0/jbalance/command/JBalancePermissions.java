@@ -92,6 +92,12 @@ public final class JBalancePermissions {
             (player, uuid, ctx) -> player != null && player.hasPermissions(4)
     );
 
+    // AFK permission — players with this node can use /afk and stay AFK without being kicked
+    public static final PermissionNode<Boolean> AFK = new PermissionNode<>(
+            "jbalance", "afk", PermissionTypes.BOOLEAN,
+            (player, uuid, ctx) -> false
+    );
+
     /**
      * Register all permission nodes. Called from JBalance via PermissionGatherEvent.Nodes.
      */
@@ -99,7 +105,8 @@ public final class JBalancePermissions {
         event.addNodes(
                 ECO_BALANCE, ECO_BALANCE_OTHER, ECO_PAY, ECO_TOP,
                 SHOP_CREATE, SHOP_TELEPORT, SHOP_SELL, SHOP_BUY, SHOP_ITEM_LIMIT,
-                ADMIN_GIVE, ADMIN_TAKE, ADMIN_SET, ADMIN_SHOP
+                ADMIN_GIVE, ADMIN_TAKE, ADMIN_SET, ADMIN_SHOP,
+                AFK
         );
     }
 }
