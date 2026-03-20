@@ -86,7 +86,77 @@ public class ShopInteractionHandler {
                     event.setCanceled(true);
                     return;
                 }
-                // Record display block position
+
+                // OP players with admin_infinite_stock skip chest selection
+                if (player.hasPermissions(2) && JBalanceConfig.SHOP_ADMIN_INFINITE_STOCK.get()) {
+                    ItemStack held = player.getMainHandItem();
+                    if (held.isEmpty()) {
+                        player.sendSystemMessage(Component.literal(
+                            "\u00a76[JBalance] \u00a7cSegure o item que deseja expor na mao!"
+                        ));
+                        event.setCanceled(true);
+                        return;
+                    }
+                    String itemId = BuiltInRegistries.ITEM.getKey(held.getItem()).toString();
+
+                    // Check if there's already an item at this display position — merge if so
+                    var repo = ShopService.getInstance().getRepo();
+                    ShopRepository.ShopItemData existing = repo.getShopItemByDisplayPos(
+                        pos.getX(), pos.getY(), pos.getZ(), dimension);
+
+                    if (existing != null && existing.shopUuid().equals(uuid)) {
+                        repo.mergeShopItem(existing.id(),
+                            session.sellQty(), session.sellPrice(),
+                            session.buyQty(), session.buyPrice());
+                        String desc = buildDesc(session, existing);
+                        player.sendSystemMessage(Component.literal(
+                            "\u00a76[JBalance] \u00a7aMostruario atualizado! (Admin - estoque infinito)\n" +
+                            "\u00a76[JBalance] \u00a77" + held.getHoverName().getString() + " - " + desc
+                        ));
+                        DiscordWebhook.logShopItemExposed(
+                            player.getName().getString(), held.getHoverName().getString(), desc);
+                        ShopSetupSession.remove(uuid);
+                        event.setCanceled(true);
+                        return;
+                    }
+
+                    // Create shop item with dummy storage coords (same as display)
+                    ShopService.getInstance().createShopItem(uuid,
+                            pos.getX(), pos.getY(), pos.getZ(),
+                            pos.getX(), pos.getY(), pos.getZ(),
+                            itemId, "",
+                            session.sellQty(), session.sellPrice(),
+                            session.buyQty(), session.buyPrice())
+                        .whenComplete((itemDbId, ex) -> player.getServer().execute(() -> {
+                            if (ex != null) {
+                                JBalance.LOGGER.error("[JBalance] Failed to create admin shop item", ex);
+                                player.sendSystemMessage(Component.literal(
+                                    "\u00a76[JBalance] \u00a7cErro ao criar item na loja."
+                                ));
+                                return;
+                            }
+                            ShopDisplayManager.getInstance().spawnDisplay(level, itemDbId, pos, itemId);
+                            String desc = "";
+                            if (session.sellQty() > 0) {
+                                desc = "Venda: " + session.sellQty() + "x por " + CurrencyFormatter.formatBalance(session.sellPrice());
+                            }
+                            if (session.buyQty() > 0) {
+                                desc += (desc.isEmpty() ? "" : " | ") +
+                                        "Compra: " + session.buyQty() + "x por " + CurrencyFormatter.formatBalance(session.buyPrice());
+                            }
+                            player.sendSystemMessage(Component.literal(
+                                "\u00a76[JBalance] \u00a7aItem exposto com sucesso! (Admin - estoque infinito)\n" +
+                                "\u00a76[JBalance] \u00a77" + held.getHoverName().getString() + " - " + desc
+                            ));
+                            DiscordWebhook.logShopItemExposed(
+                                player.getName().getString(), held.getHoverName().getString(), desc);
+                        }));
+                    ShopSetupSession.remove(uuid);
+                    event.setCanceled(true);
+                    return;
+                }
+
+                // Record display block position (normal player flow)
                 ShopSetupSession.update(uuid, session.withDisplayBlock(pos));
                 player.sendSystemMessage(Component.literal(
                     "\u00a76[JBalance] \u00a7aBloco de exposicao marcado! " +
@@ -220,19 +290,33 @@ public class ShopInteractionHandler {
      * Shows clickable buy/sell options with quantity buttons.
      * All verifications: buyer balance, seller balance, stock, inventory space.
      */
+    public static boolean isAdminShop(net.minecraft.server.MinecraftServer server, UUID ownerUuid) {
+        if (!JBalanceConfig.SHOP_ADMIN_INFINITE_STOCK.get()) return false;
+        return server.getProfileCache().get(ownerUuid)
+            .map(profile -> server.getPlayerList().isOp(profile))
+            .orElse(false);
+    }
+
     private static void showTradeOptions(ServerPlayer player, ShopRepository.ShopItemData shopItem, ServerLevel level) {
         String itemId = shopItem.itemId();
         var targetItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(itemId));
         String itemName = targetItem.getDescription().getString();
 
-        // Count stock in storage
-        BlockPos storagePos = new BlockPos(shopItem.storageX(), shopItem.storageY(), shopItem.storageZ());
-        BlockEntity be = level.getBlockEntity(storagePos);
-        int stock = 0;
-        if (be instanceof BaseContainerBlockEntity container) {
-            for (int i = 0; i < container.getContainerSize(); i++) {
-                ItemStack s = container.getItem(i);
-                if (s.is(targetItem)) stock += s.getCount();
+        boolean adminShop = isAdminShop(level.getServer(), shopItem.shopUuid());
+
+        // Count stock in storage (infinite for admin shops)
+        int stock;
+        if (adminShop) {
+            stock = Integer.MAX_VALUE;
+        } else {
+            stock = 0;
+            BlockPos storagePos = new BlockPos(shopItem.storageX(), shopItem.storageY(), shopItem.storageZ());
+            BlockEntity be = level.getBlockEntity(storagePos);
+            if (be instanceof BaseContainerBlockEntity container) {
+                for (int i = 0; i < container.getContainerSize(); i++) {
+                    ItemStack s = container.getItem(i);
+                    if (s.is(targetItem)) stock += s.getCount();
+                }
             }
         }
 
@@ -257,26 +341,29 @@ public class ShopInteractionHandler {
                 ShopDisplayManager.getInstance().removeDisplay(level, shopItem.id());
                 ShopService.getInstance().getRepo().setShopItemActive(shopItem.id(), false);
             } else {
+                final boolean fAdminShop = adminShop;
                 // Check buyer balance to determine max affordable
                 final int fStock = stock;
                 EconomyService.getInstance().getBalance(player.getUUID())
                     .whenComplete((buyerBal, exBal) -> player.getServer().execute(() -> {
                         long bal = (exBal != null || buyerBal == null) ? 0 : buyerBal;
                         int maxByMoney = (int) (bal / shopItem.sellPrice());
-                        int maxBuy = Math.min(fStock, maxByMoney);
+                        int maxBuy = fAdminShop ? maxByMoney : Math.min(fStock, maxByMoney);
 
                         if (maxBuy <= 0) {
+                            String stockText = fAdminShop ? "Infinito" : String.valueOf(fStock);
                             player.sendSystemMessage(Component.literal(
                                 "\u00a77Comprar: \u00a76" + CurrencyFormatter.formatBalance(shopItem.sellPrice()) +
-                                " \u00a77cada | Estoque: \u00a76" + fStock +
+                                " \u00a77cada | Estoque: \u00a76" + stockText +
                                 " \u00a77| \u00a7cSaldo insuficiente!"
                             ));
                             return;
                         }
 
+                        String stockText = fAdminShop ? "Infinito" : String.valueOf(fStock);
                         player.sendSystemMessage(Component.literal(
                             "\u00a77Comprar: \u00a76" + CurrencyFormatter.formatBalance(shopItem.sellPrice()) +
-                            " \u00a77cada | Estoque: \u00a76" + fStock +
+                            " \u00a77cada | Estoque: \u00a76" + stockText +
                             " \u00a77| Seu saldo: \u00a76" + CurrencyFormatter.formatBalance(bal)
                         ));
 
@@ -322,10 +409,11 @@ public class ShopInteractionHandler {
         // ── SELL section ──
         if (shopItem.buyQty() > 0 && shopItem.buyPrice() > 0) {
             final int fPlayerHas = playerHas;
+            final boolean fAdminShop2 = adminShop;
             EconomyService.getInstance().getBalance(shopItem.shopUuid())
                 .whenComplete((ownerBal, ex2) -> player.getServer().execute(() -> {
                     long bal = (ex2 != null || ownerBal == null) ? 0 : ownerBal;
-                    int maxByMoney = (int) (bal / shopItem.buyPrice());
+                    int maxByMoney = fAdminShop2 ? Integer.MAX_VALUE : (int) (bal / shopItem.buyPrice());
                     int maxSell = Math.min(fPlayerHas, maxByMoney);
 
                     if (fPlayerHas == 0) {
@@ -334,7 +422,7 @@ public class ShopInteractionHandler {
                         ));
                         return;
                     }
-                    if (maxByMoney == 0) {
+                    if (!fAdminShop2 && maxByMoney == 0) {
                         player.sendSystemMessage(Component.literal(
                             "\u00a77Vender: \u00a76" + CurrencyFormatter.formatBalance(shopItem.buyPrice()) +
                             " \u00a77cada | \u00a7cDono da loja sem saldo!"

@@ -1,6 +1,7 @@
 package com.pweg0.jbalance.shop;
 
 import com.pweg0.jbalance.JBalance;
+import com.pweg0.jbalance.config.JBalanceConfig;
 import com.pweg0.jbalance.data.db.ShopRepository;
 import com.pweg0.jbalance.service.ShopService;
 import net.minecraft.core.BlockPos;
@@ -42,6 +43,8 @@ public class ShopDisplayManager {
      * The item hovers at blockPos + (0.5, 1.2, 0.5) and slowly rotates.
      */
     public void spawnDisplay(ServerLevel level, int shopItemId, BlockPos displayBlock, String itemId) {
+        if (!JBalanceConfig.SHOP_SHOW_ITEM_DISPLAY.get()) return;
+
         // Remove existing display for this item if any
         removeDisplay(level, shopItemId);
 

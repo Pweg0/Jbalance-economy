@@ -11,6 +11,7 @@ import com.pweg0.jbalance.data.db.ShopRepository;
 import com.pweg0.jbalance.service.EconomyService;
 import com.pweg0.jbalance.service.ShopService;
 import com.pweg0.jbalance.shop.ShopDisplayManager;
+import com.pweg0.jbalance.shop.ShopInteractionHandler;
 import com.pweg0.jbalance.shop.ShopPendingTransaction;
 import com.pweg0.jbalance.shop.ShopSetupSession;
 import com.pweg0.jbalance.util.CurrencyFormatter;
@@ -281,30 +282,35 @@ public class JShopCommand {
                     return;
                 }
 
+                boolean adminShop = ShopInteractionHandler.isAdminShop(buyer.getServer(), tx.shopOwner());
+
                 // Get shop item data to find storage
                 ShopService.getInstance().getRepo().getShopItems(tx.shopOwner()).stream()
                     .filter(i -> i.id() == tx.shopItemId())
                     .findFirst()
                     .ifPresentOrElse(item -> {
-                        BlockPos storagePos = new BlockPos(item.storageX(), item.storageY(), item.storageZ());
-                        BlockEntity be = level.getBlockEntity(storagePos);
-                        if (!(be instanceof BaseContainerBlockEntity container)) {
-                            buyer.sendSystemMessage(Component.literal("\u00a76[JBalance] \u00a7cBau nao encontrado!"));
-                            return;
-                        }
-
                         var targetItem = BuiltInRegistries.ITEM.get(ResourceLocation.parse(tx.itemId()));
-                        // Remove from storage
-                        int remaining = qty;
-                        for (int i = 0; i < container.getContainerSize() && remaining > 0; i++) {
-                            ItemStack stack = container.getItem(i);
-                            if (stack.is(targetItem)) {
-                                int take = Math.min(remaining, stack.getCount());
-                                stack.shrink(take);
-                                remaining -= take;
+
+                        if (!adminShop) {
+                            BlockPos storagePos = new BlockPos(item.storageX(), item.storageY(), item.storageZ());
+                            BlockEntity be = level.getBlockEntity(storagePos);
+                            if (!(be instanceof BaseContainerBlockEntity container)) {
+                                buyer.sendSystemMessage(Component.literal("\u00a76[JBalance] \u00a7cBau nao encontrado!"));
+                                return;
                             }
+
+                            // Remove from storage
+                            int remaining = qty;
+                            for (int i2 = 0; i2 < container.getContainerSize() && remaining > 0; i2++) {
+                                ItemStack stack = container.getItem(i2);
+                                if (stack.is(targetItem)) {
+                                    int take = Math.min(remaining, stack.getCount());
+                                    stack.shrink(take);
+                                    remaining -= take;
+                                }
+                            }
+                            container.setChanged();
                         }
-                        container.setChanged();
 
                         // Give to buyer
                         ItemStack give = new ItemStack(targetItem, qty);
@@ -340,20 +346,26 @@ public class JShopCommand {
                             priceStr, CurrencyFormatter.formatBalance(tax),
                             CurrencyFormatter.formatBalance(sellerGets));
 
-                        // Check remaining stock
-                        int stock = 0;
-                        for (int i = 0; i < container.getContainerSize(); i++) {
-                            ItemStack s = container.getItem(i);
-                            if (s.is(targetItem)) stock += s.getCount();
-                        }
-                        if (stock == 0) {
-                            ShopDisplayManager.getInstance().removeDisplay(level, item.id());
-                            ShopService.getInstance().getRepo().setShopItemActive(item.id(), false);
-                            if (seller != null) {
-                                seller.sendSystemMessage(Component.literal(
-                                    "\u00a76[JBalance] \u00a7c\u00a7lSem estoque! \u00a7e" +
-                                    targetItem.getDescription().getString() + " \u00a77acabou na sua loja!"
-                                ));
+                        // Check remaining stock (skip for admin shops)
+                        if (!adminShop) {
+                            BlockPos storagePos = new BlockPos(item.storageX(), item.storageY(), item.storageZ());
+                            BlockEntity be2 = level.getBlockEntity(storagePos);
+                            if (be2 instanceof BaseContainerBlockEntity container2) {
+                                int stock = 0;
+                                for (int i2 = 0; i2 < container2.getContainerSize(); i2++) {
+                                    ItemStack s = container2.getItem(i2);
+                                    if (s.is(targetItem)) stock += s.getCount();
+                                }
+                                if (stock == 0) {
+                                    ShopDisplayManager.getInstance().removeDisplay(level, item.id());
+                                    ShopService.getInstance().getRepo().setShopItemActive(item.id(), false);
+                                    if (seller != null) {
+                                        seller.sendSystemMessage(Component.literal(
+                                            "\u00a76[JBalance] \u00a7c\u00a7lSem estoque! \u00a7e" +
+                                            targetItem.getDescription().getString() + " \u00a77acabou na sua loja!"
+                                        ));
+                                    }
+                                }
                             }
                         }
                     }, () -> buyer.sendSystemMessage(Component.literal(
@@ -366,10 +378,12 @@ public class JShopCommand {
         long totalPrice = tx.pricePerUnit() * qty;
         ServerLevel level = (ServerLevel) seller.level();
 
-        // Check shop owner has enough balance
+        boolean adminShopCheck = ShopInteractionHandler.isAdminShop(seller.getServer(), tx.shopOwner());
+
+        // Check shop owner has enough balance (skip for admin shops)
         EconomyService.getInstance().getBalance(tx.shopOwner())
             .whenComplete((ownerBal, ex) -> seller.getServer().execute(() -> {
-                if (ex != null || ownerBal < totalPrice) {
+                if (!adminShopCheck && (ex != null || ownerBal < totalPrice)) {
                     seller.sendSystemMessage(Component.literal(
                         "\u00a76[JBalance] \u00a7cO dono da loja nao tem saldo suficiente para comprar!"
                     ));
@@ -402,36 +416,42 @@ public class JShopCommand {
                     }
                 }
 
-                // Put items in shop storage
-                ShopService.getInstance().getRepo().getShopItems(tx.shopOwner()).stream()
-                    .filter(i -> i.id() == tx.shopItemId())
-                    .findFirst()
-                    .ifPresent(item -> {
-                        BlockPos storagePos = new BlockPos(item.storageX(), item.storageY(), item.storageZ());
-                        BlockEntity be = level.getBlockEntity(storagePos);
-                        if (be instanceof BaseContainerBlockEntity container) {
-                            ItemStack toStore = new ItemStack(targetItem, qty);
-                            for (int i = 0; i < container.getContainerSize(); i++) {
-                                if (toStore.isEmpty()) break;
-                                ItemStack slot = container.getItem(i);
-                                if (slot.isEmpty()) {
-                                    container.setItem(i, toStore.copy());
-                                    toStore.setCount(0);
-                                } else if (ItemStack.isSameItemSameComponents(slot, toStore) &&
-                                           slot.getCount() < slot.getMaxStackSize()) {
-                                    int add = Math.min(toStore.getCount(), slot.getMaxStackSize() - slot.getCount());
-                                    slot.grow(add);
-                                    toStore.shrink(add);
+                // Put items in shop storage (skip for admin shops — items are discarded)
+                boolean adminShopSell = ShopInteractionHandler.isAdminShop(seller.getServer(), tx.shopOwner());
+                if (!adminShopSell) {
+                    ShopService.getInstance().getRepo().getShopItems(tx.shopOwner()).stream()
+                        .filter(i -> i.id() == tx.shopItemId())
+                        .findFirst()
+                        .ifPresent(item -> {
+                            BlockPos storagePos = new BlockPos(item.storageX(), item.storageY(), item.storageZ());
+                            BlockEntity be = level.getBlockEntity(storagePos);
+                            if (be instanceof BaseContainerBlockEntity container) {
+                                ItemStack toStore = new ItemStack(targetItem, qty);
+                                for (int i = 0; i < container.getContainerSize(); i++) {
+                                    if (toStore.isEmpty()) break;
+                                    ItemStack slot = container.getItem(i);
+                                    if (slot.isEmpty()) {
+                                        container.setItem(i, toStore.copy());
+                                        toStore.setCount(0);
+                                    } else if (ItemStack.isSameItemSameComponents(slot, toStore) &&
+                                               slot.getCount() < slot.getMaxStackSize()) {
+                                        int add = Math.min(toStore.getCount(), slot.getMaxStackSize() - slot.getCount());
+                                        slot.grow(add);
+                                        toStore.shrink(add);
+                                    }
                                 }
+                                container.setChanged();
                             }
-                            container.setChanged();
-                        }
-                    });
+                        });
+                }
 
                 // Payment: take from shop owner, give to seller (with tax)
+                // Admin shops generate money — don't take from owner
                 long tax = ShopService.calculateTax(totalPrice);
                 long sellerGets = ShopService.sellerReceives(totalPrice);
-                EconomyService.getInstance().take(tx.shopOwner(), totalPrice);
+                if (!adminShopCheck) {
+                    EconomyService.getInstance().take(tx.shopOwner(), totalPrice);
+                }
                 EconomyService.getInstance().give(seller.getUUID(), sellerGets);
 
                 seller.sendSystemMessage(Component.literal(

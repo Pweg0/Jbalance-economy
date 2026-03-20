@@ -36,6 +36,8 @@ public class JBalanceConfig {
     public static final ModConfigSpec.ConfigValue<java.util.List<? extends String>> SHOP_DISPLAY_BLACKLIST;
     public static final ModConfigSpec.LongValue SHOP_TAX_PERCENT;
     public static final ModConfigSpec.LongValue SHOP_RELOCATE_COOLDOWN_DAYS;
+    public static final ModConfigSpec.BooleanValue SHOP_ADMIN_INFINITE_STOCK;
+    public static final ModConfigSpec.BooleanValue SHOP_SHOW_ITEM_DISPLAY;
 
     // Earnings - Mob Kills section
     public static final ModConfigSpec.BooleanValue MOB_KILLS_ENABLED;
@@ -102,6 +104,10 @@ public class JBalanceConfig {
                                    .defineInRange("tax_percent", 3L, 0L, 100L);
         SHOP_RELOCATE_COOLDOWN_DAYS = builder.comment("Days before a player can relocate their shop with /setloja (0 = no cooldown). Admin /ecoadmin setloja bypasses this.")
                                               .defineInRange("relocate_cooldown_days", 30L, 0L, 365L);
+        SHOP_ADMIN_INFINITE_STOCK = builder.comment("OP players have infinite stock — no chest required, items never run out")
+                                            .define("admin_infinite_stock", true);
+        SHOP_SHOW_ITEM_DISPLAY = builder.comment("Show floating item entity above shop display blocks (false = no floating item)")
+                                         .define("show_item_display", true);
         builder.pop();
 
         builder.comment("JBalance Earnings Settings").push("earnings");
