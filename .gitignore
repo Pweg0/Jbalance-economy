@@ -10,3 +10,7 @@ build/
 
 # NeoForge dev environment
 runs/
+
+# Claude / Planning
+.claude/
+.planning/
